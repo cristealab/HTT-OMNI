@@ -2,10 +2,7 @@ import pandas as pd
 import numpy as np
 import itertools
 import holoviews as hv
-import networkx as nx
-import param
 from holoviews import opts, dim
-from holoviews.operation.datashader import bundle_graph
 import panel as pn
 
 from draggable_graph import DraggableGraph
