@@ -23,6 +23,13 @@ class DraggableGraph(param.Parameterized):
         
         super(DraggableGraph, self).__init__(**params)
         
+        # holoviews throws an error when bundling edges if source and target == 'source' or 'target'
+        # this is likely a bug (perhaps report later?)
+        if source_col == 'source':
+            raise ValueError('source_col cannot be "source" (passed "{}")'.format(source_col))
+        elif target_col=='target':
+            raise ValueError('target_col cannot be "target" (passed "{}")'.format(target_col))
+        
         self.index_col = index_col
         self.source_col = source_col
         self.target_col = target_col
@@ -41,7 +48,7 @@ class DraggableGraph(param.Parameterized):
         
     def view_nodes(self):
         g = hv.Graph.from_networkx(self.G, dict(zip(self.node_data[self.index_col], self.node_data[['x', 'y']].values)))
-                
+        
         return g.nodes
         
     def view_edges(self, data):
@@ -66,6 +73,9 @@ class DraggableGraph(param.Parameterized):
         return hv.Labels(data_, ['x', 'y'], self.label_col)
     
     def view(self, data):
+        if len(data)!=5:
+            raise ValueError('Data does not have the right number of items (nodes, edges, graph_opts, layout_algorithm, bundle_graph_edges)')
+            
         # make a new stream (for some reason we need a new stream for new data...)
         self.stream = hv.streams.PointDraw(add=False)
         

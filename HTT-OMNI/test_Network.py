@@ -5,11 +5,11 @@ import holoviews as hv
 from holoviews import opts, dim
 import panel as pn
 
-from draggable_graph import DraggableGraph
+from network import Network
 
 hv.extension('bokeh')
 pn.extension(sizing_mode='stretch_width', min_height=0, min_width=0)
-                
+
 def make_nodes_edges(n, links=None):
     if links is None:
         links = n
@@ -51,21 +51,18 @@ graph_opts = [
     )
 ]
 
-graph = DraggableGraph(
-    index_col = 'label',
+app = Network(
+    test_nodes, 
+    test_edges, 
+    graph_opts = graph_opts, 
+    index_col = 'label', 
     source_col = 'source_node',
     target_col = 'target_node',
-    label_col = 'label',
+    label_col = 'label'
 )
-
-pane = pn.pane.HoloViews(
-    graph.view([test_nodes.copy(), test_edges.copy(), graph_opts, 'circular', False]), 
-    sizing_mode='stretch_both', 
-    linked_axes=False, 
-    min_height=0, 
-    min_width=0
-)
-
 react = pn.template.ReactTemplate()
-react.main[:4,:6] = pn.Column(pane)
+react.main[:4,:6] = pn.Column(
+    pn.Param(app, parameters = ['slider'], widgets = {'slider': {'type': pn.widgets.IntSlider, 'throttled': True}}), 
+    app.network_pane
+)
 react.show()
