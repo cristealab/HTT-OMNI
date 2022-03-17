@@ -4,8 +4,6 @@ import panel as pn
 
 from draggable_graph import DraggableGraph
 
-import itertools
-
 class Network(param.Parameterized):
     # will contain a list of [nodes, edges, graph_opts, layout_algorithm, bundle_graph_edges] to be displayed in the network
     network_data = hv.streams.Pipe(linked=False)
