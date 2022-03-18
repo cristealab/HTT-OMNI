@@ -7,10 +7,12 @@ from holoviews.operation.datashader import bundle_graph
 
 class DraggableGraph(param.Parameterized):
     
-    nodes = param.DataFrame(precedence=-1)
-    edges = param.DataFrame(precedence=-1)
+    # keeps track of previous nodes, edges, and layout to maintain node positions when changing aesthetic properties
+    current_nodes = param.DataFrame(precedence=-1)
+    current_edges = param.DataFrame(precedence=-1)
+    current_layout = param.String()
+    current_stream_data = param.Parameter()
     
-    node_data = param.DataFrame()
     stream = hv.streams.PointDraw(add=False)
     
     def __init__(self, 
@@ -46,16 +48,15 @@ class DraggableGraph(param.Parameterized):
          
         return G
         
-    def view_nodes(self):
-        g = hv.Graph.from_networkx(self.G, dict(zip(self.node_data[self.index_col], self.node_data[['x', 'y']].values)))
-        
-        return g.nodes
+    def view_nodes(self, positions):
+        g = hv.Graph.from_networkx(self.G, dict(zip(positions[self.index_col], positions[['x', 'y']].values))).nodes
+        self.stream.update(data=g.columns())
+
+        return g
         
     def view_edges(self, data):
-        if data is None:
-            data_ = self.node_data
-        else:
-            data_ = pd.DataFrame(data)
+
+        data_ = pd.DataFrame(data)
         
         g = hv.Graph.from_networkx(self.G, dict(zip(data_[self.index_col], data_[['x', 'y']].values)))
         
@@ -65,19 +66,14 @@ class DraggableGraph(param.Parameterized):
         return g
     
     def view_labels(self, data):
-        if data is None:
-            data_ = self.node_data
-        else:
-            data_ = pd.DataFrame(data)
+        
+        data_ = pd.DataFrame(data)
         
         return hv.Labels(data_, ['x', 'y'], self.label_col)
     
     def view(self, data):
         if len(data)!=5:
             raise ValueError('Data does not have the right number of items (nodes, edges, graph_opts, layout_algorithm, bundle_graph_edges)')
-            
-        # make a new stream (for some reason we need a new stream for new data...)
-        self.stream = hv.streams.PointDraw(add=False)
         
         # unpack data = [nodes, edges, graph_opts, layout_algorithm, bundle_graph]
         nodes, edges, graph_opts, layout_algorithm, bundle_graph_edges = data
@@ -94,19 +90,35 @@ class DraggableGraph(param.Parameterized):
         self.G = self.make_graph(nodes, edges)
         self.bundle_graph_edges = bundle_graph_edges
         
-        init_layout = pd.DataFrame(getattr(nx, '{}_layout'.format(layout_algorithm))(self.G), index=['x', 'y']).T
-        init_layout.index.name = self.index_col
-        
-        self.node_data = pd.concat([nodes.set_index(self.index_col), init_layout], axis=1).reset_index()
-        
-        node_graph = self.view_nodes()
+        if (self.current_nodes is None) and (self.current_edges is None):
+            new_layout = True
+        elif self.current_layout!=layout_algorithm:
+            new_layout = True
+        elif self.current_nodes.index.isin(nodes.index).all() and nodes.index.isin(self.current_nodes.index).all():
+            new_layout = False
+        else:
+            new_layout = True
+            
+        if new_layout == True:
+            init_layout = pd.DataFrame(getattr(nx, '{}_layout'.format(layout_algorithm))(self.G), index=['x', 'y']).T
+            init_layout.index.name = self.index_col
+            positions = pd.concat([nodes.set_index(self.index_col), init_layout], axis=1).reset_index()
+        else:
+            positions = pd.DataFrame(self.current_stream_data)
+            
+        node_graph = self.view_nodes(positions)
         self.stream.source = node_graph
         
         edge_graph = hv.DynamicMap(self.view_edges, streams = [self.stream])
         labels = hv.DynamicMap(self.view_labels, streams = [self.stream])
         
+        self.current_nodes = nodes
+        self.current_edges = edges
+        self.current_layout = layout_algorithm
+        
         return (edge_graph*node_graph*labels).opts(*graph_opts)        
     
     @param.depends('stream.data', watch=True)
-    def _update_dataframe(self):
+    def _update(self):
         self.node_data = pd.DataFrame(self.stream.data)
+        self.current_stream_data = self.stream.data
