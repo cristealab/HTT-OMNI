@@ -122,3 +122,4 @@ class DraggableGraph(param.Parameterized):
     def _update(self):
         self.node_data = pd.DataFrame(self.stream.data)
         self.current_stream_data = self.stream.data
+        
