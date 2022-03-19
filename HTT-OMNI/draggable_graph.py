@@ -106,17 +106,17 @@ class DraggableGraph(param.Parameterized):
         else:
             positions = pd.DataFrame(self.current_stream_data)
             
-        node_graph = self.view_nodes(positions)
-        self.stream.source = node_graph
+        self.node_graph = self.view_nodes(positions)
+        self.stream.source = self.node_graph
         
-        edge_graph = hv.DynamicMap(self.view_edges, streams = [self.stream])
-        labels = hv.DynamicMap(self.view_labels, streams = [self.stream])
+        self.edge_graph = hv.DynamicMap(self.view_edges, streams = [self.stream])
+        self.labels = hv.DynamicMap(self.view_labels, streams = [self.stream])
         
         self.current_nodes = nodes
         self.current_edges = edges
         self.current_layout = layout_algorithm
         
-        return (edge_graph*node_graph*labels).opts(*graph_opts)        
+        return (self.edge_graph*self.node_graph*self.labels).opts(*graph_opts)        
     
     @param.depends('stream.data', watch=True)
     def _update(self):
