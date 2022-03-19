@@ -13,7 +13,7 @@ class Network(param.Parameterized):
     edge_data = param.DataFrame() # list of [nodes, edges]
     graph_opts = param.Parameter({}) # dict of {k: v} where k is a valid opts.k method and v is a dict of options
     sel_data = param.DataFrame()
-    selected_node = param.Tuple() # tuple of (index_col, label_col) values for a selected node
+    selected_node = param.Tuple((None, None)) # tuple of (index_col, label_col) values for a selected node
     
     # data streams push data to DynamicMaps
     network_data = hv.streams.Pipe() #ultimately this will be a list of node_data, edge_data, graph_opts_data, layout, bundle_edge_graphs
@@ -86,6 +86,9 @@ class Network(param.Parameterized):
         
         self.click_stream.source = self.graph.edge_graph
         self.network_pane.object = network_graph
+        
+        if self.selected_node == (None, None): # only on initialization
+            self.selected_node = tuple(self.node_data.iloc[0,:][[self.index_col, self.label_col]])
         
     @param.depends('node_data', 'edge_data', 'graph_opts', 'layout', 'bundle_graph_edges', watch=True)
     def update_data(self):
