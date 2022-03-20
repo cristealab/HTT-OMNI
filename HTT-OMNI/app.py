@@ -10,10 +10,17 @@ from enrichment import Enrichment
 from omics_data_viewer import OmicsDataViewer
 from legends import nodes_colorbar
 
+hv.extension('bokeh')
+pn.extension(
+    sizing_mode='stretch_width', 
+    min_height=0, 
+    min_width=0, 
+#     loading_spinner='dots', 
+#     loading_color='grey'
+)
 
-
-nodes = pd.read_csv('20220310_nodes.csv.gz', low_memory=False)
-edges = pd.read_csv('20220310_edges.csv.gz')
+nodes = pd.read_csv(r'.\assets\data\20220319_published_nodes.csv.gz', low_memory=False)
+edges = pd.read_csv(r'.\assets\data\20220319_published_edges.csv.gz')
 
 geneID_col = 'interactor_Human Ortholog_EntrezGeneID'
 geneSymbol_col = 'interactor_Human Ortholog_EntrezGeneSymbol'
@@ -28,7 +35,7 @@ max_PPI = 20
 size_dict = dict(zip(range(1, max_PPI+1), np.linspace(smallest, largest, max_PPI)))
 size_dict.update(dict(zip(range(max_PPI+1, 101), [largest]*len(list(range(max_PPI+1, 101))))))
 
-omics_data = pd.read_csv(r'Z:\2 Programming\10 CHDI\PPI visualization\24mo milestone\20220319_omics_data.csv', header=[0, 1, 2, 3], index_col=[0, 1])
+omics_data = pd.read_csv(r'.\assets\data\20220319_omics_data.csv', header=[0, 1, 2, 3], index_col=[0, 1])
 omics_data.index.names = ['geneSymbol', 'geneID']
 omics_data = omics_data.reset_index().set_index(['geneID', 'geneSymbol'])
 omics_data = omics_data[omics_data.index.get_level_values('geneID').isin(nodes[geneID_col])].copy()
