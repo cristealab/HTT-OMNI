@@ -61,6 +61,10 @@ class Enrichment(param.Parameterized):
             
     @param.depends('run_GO_analysis', watch=True)   
     def PantherGO_enrichment(self):
+        
+        # for loading spinner control
+        self.loading = True
+        
         url = 'http://pantherdb.org/services/oai/pantherdb/enrich/overrep'
         payload = {
             'geneInputList': ','.join(self.parent.sel_nodes[self.index_col].astype(str)), # comma-separated
@@ -76,7 +80,10 @@ class Enrichment(param.Parameterized):
         if len(results)>0:
             results = pd.concat([results, results['term'].apply(lambda x: pd.Series(x))], axis=1).drop('term', axis=1)
             results = results[~results['label'].isin(self.ignore_terms)]
-
+        
+        # for loading spinner control
+        self.loading = False
+        
         self.results = results.infer_objects().copy()
          
     def plot_GO_enrichment(self, selected_results, GO_min_enrichment, GO_max_FDR, GO_show):
