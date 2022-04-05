@@ -13,7 +13,7 @@ class DraggableGraph(param.Parameterized):
     current_layout = param.String()
     current_stream_data = param.Parameter()
     
-    stream = hv.streams.PointDraw(add=False)
+    stream = param.ClassSelector(default=hv.streams.PointDraw(), class_=(hv.streams.PointDraw,), precedence=-1)
     
     def __init__(self, 
                  index_col = 'geneID', 
