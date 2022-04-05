@@ -78,7 +78,7 @@ class Network(param.Parameterized):
 #             if not k2 in self.graph_opts[k1]:
 #                 self.graph_opts[k1].update({k2: getattr(self, param_name)})
                 
-        self.param.set_param(node_data=new_nodes, edge_data = new_edges, graph_opts = self.graph_opts)
+        self.param.set_param(node_data=new_nodes, edge_data = new_edges, graph_opts = self.graph_opts) # triggers self.update_data
                  
     @param.depends('network_data.data', watch=True) # this method is the money maker!
     def view(self):
@@ -90,8 +90,15 @@ class Network(param.Parameterized):
         if self.selected_node == (None, None): # only on initialization
             self.selected_node = tuple(self.node_data.iloc[0,:][[self.index_col, self.label_col]])
         
+        # for loading spinner control
+        self.loading = False
+        
     @param.depends('node_data', 'edge_data', 'graph_opts', 'layout', 'bundle_graph_edges', watch=True)
     def update_data(self):
+        
+        # for loading spinner control
+        self.loading = True
+        
         new_data = [
             self.node_data, # nodes
             self.edge_data, # edges
@@ -115,6 +122,10 @@ class Network(param.Parameterized):
         
     @param.depends('max_nodes', watch=True)
     def update_nodes_edges(self, wait=False):
+        
+        # for loading spinner control
+        self.loading = True
+        
         new_nodes = self.nodes.iloc[:self.max_nodes,:].copy()
         new_edges = self.edges[self.edges[self.source_col].isin(new_nodes[self.index_col])&self.edges[self.target_col].isin(new_nodes[self.index_col])].copy()
         
@@ -127,7 +138,7 @@ class Network(param.Parameterized):
         if wait == True:
             return new_nodes, new_edges
         else:
-            self.param.set_param(node_data = new_nodes, edge_data=new_edges, graph_opts = self.graph_opts)
+            self.param.set_param(node_data = new_nodes, edge_data=new_edges, graph_opts = self.graph_opts) # triggers self.update_data
         
     @param.depends('fontsize', watch=True)
     def update_fontsize(self):
