@@ -17,24 +17,24 @@ def make_nodes_edges(n, links=None):
     nodes = pd.DataFrame(list(zip(np.random.uniform(low=20, high=90, size=n), [str(i) for i in range(1, n+1)])), columns = ['node_score', 'label'])
     e = np.array(list(itertools.combinations(nodes['label'][:links], 2)))
     edges = pd.DataFrame(np.vstack([e.T, np.random.uniform(0, 256, len(e))]).T, columns = ['source_node', 'target_node', 'edge_score'])
-    edges['edge_score'] = edges['edge_score'].astype(float)
+    edges['combined score'] = edges['edge_score'].astype(float)
     
     return nodes, edges
 
-test_nodes, test_edges = make_nodes_edges(10)
+test_nodes, test_edges = make_nodes_edges(10, links=5)
 
-node_color = 'node_score'
+node_color = 'connectivity'
 node_size = 'node_score'
 node_cmap = 'Spectral'
 
-graph_opts = [
-    opts.Nodes(
+graph_opts = {
+    'Nodes': dict(
         active_tools=['point_draw',], 
         color=node_color,
         cmap = node_cmap,
         size = node_size,
     ),
-    opts.Graph(
+    'Graph': dict(
         edge_color = dim('edge_score'),
         edge_cmap = 'Greys',
         node_color = node_color,
@@ -42,14 +42,14 @@ graph_opts = [
         node_size = node_size,
         tools = []
     ),
-    opts.Overlay(
+    'Overlay': dict(
         xlim=(-1.3, 1.3),
         ylim=(-1.3, 1.3),
         responsive=True,
         xaxis=None, 
         yaxis=None
     )
-]
+}
 
 app = Network(
     test_nodes, 
