@@ -16,8 +16,8 @@ class Network(param.Parameterized):
     selected_node = param.Tuple((None, None)) # tuple of (index_col, label_col) values for a selected node
     
     # data streams push data to DynamicMaps
-    network_data = hv.streams.Pipe() #ultimately this will be a list of node_data, edge_data, graph_opts_data, layout, bundle_edge_graphs
-    click_stream = hv.streams.Tap()
+    network_data = param.ClassSelector(default=hv.streams.Pipe(), class_=(hv.streams.Pipe,), precedence=-1) #ultimately this will be a list of node_data, edge_data, graph_opts_data, layout, bundle_edge_graphs
+    click_stream = param.ClassSelector(default=hv.streams.Tap(), class_=(hv.streams.Tap,), precedence=-1)
     
     # slider for # of nodes to show
     max_nodes = param.Selector(objects = [10, 20, 50, 100, 200, 300, 400, 500], default=50)
