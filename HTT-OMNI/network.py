@@ -12,15 +12,11 @@ class Network(param.Parameterized):
     node_data = param.DataFrame()
     edge_data = param.DataFrame() # list of [nodes, edges]
     graph_opts = param.Parameter({}) # dict of {k: v} where k is a valid opts.k method and v is a dict of options
-    sel_data = param.DataFrame()
     selected_node = param.Tuple((None, None)) # tuple of (index_col, label_col) values for a selected node
     
     # data streams push data to DynamicMaps
-    network_data = param.ClassSelector(default=hv.streams.Pipe(), class_=(hv.streams.Pipe,), precedence=-1) #ultimately this will be a list of node_data, edge_data, graph_opts_data, layout, bundle_edge_graphs
+    network_data = param.ClassSelector(default=hv.streams.Pipe(), class_=(hv.streams.Pipe,), precedence=-1) #ultimately this will be a list of node_data, edge_data, layout, bundle_edge_graphs
     click_stream = param.ClassSelector(default=hv.streams.Tap(), class_=(hv.streams.Tap,), precedence=-1)
-    
-    # slider for # of nodes to show
-    max_nodes = param.Selector(objects = [10, 20, 50, 100, 200, 300, 400, 500], default=50)
     
     # graph layout algorithm
     layout = param.Selector(objects = ['kamada_kawai', 'circular', 'spring'], default='kamada_kawai')
@@ -32,6 +28,9 @@ class Network(param.Parameterized):
     fontsize = param.Selector(default = '10pt', objects = ['{}pt'.format(i) for i in range(31)])
     node_cmap = param.Selector(objects = hv.plotting.util.list_cmaps(), default='Spectral')
     node_clim = param.Tuple(default = (None, None))
+    
+    # parent DataFiter
+    parent = param.ClassSelector(DataFilter)
     
     def __init__(self, 
                  nodes, 
@@ -63,37 +62,19 @@ class Network(param.Parameterized):
             label_col = self.label_col,
         )
         
-        new_nodes, new_edges = self.update_nodes_edges(wait=True) # don't trigger param update yet
-        
-#         # set default style parameters if not passed in graph_opts
-#         styles = list(zip(
-#             ['Nodes', 'Graph', 'Nodes', 'Graph', 'Labels'], 
-#             ['cmap', 'cmap', 'clim', 'clim', 'text_font_size'], 
-#             ['node_cmap', 'node_cmap', 'node_clim', 'node_clim', 'fontize']
-#         ))
-        
-#         for k1, k2, param_name in styles:
-#             if not k1 in self.graph_opts:
-#                 self.graph_opts[k1] = {}
-#             if not k2 in self.graph_opts[k1]:
-#                 self.graph_opts[k1].update({k2: getattr(self, param_name)})
-                
-        self.param.set_param(node_data=new_nodes, edge_data = new_edges, graph_opts = self.graph_opts) # triggers self.update_data
+        self.update_nodes_edges() # triggers self.update_data
                  
     @param.depends('network_data.data', watch=True) # this method is the money maker!
     def view(self):
-        network_graph = self.graph.view(self.network_data.data).opts(active_tools=['point_draw'])
-        
+        self.network_graph = self.graph.view(self.network_data.data)
         self.click_stream.source = self.graph.edge_graph
-        self.network_pane.object = network_graph
         
         if self.selected_node == (None, None): # only on initialization
             self.selected_node = tuple(self.node_data.iloc[0,:][[self.index_col, self.label_col]])
         
-        # for loading spinner control
-        self.loading = False
+        self.update_graph_opts() # Updates opts and sets self.loading to False
         
-    @param.depends('node_data', 'edge_data', 'graph_opts', 'layout', 'bundle_graph_edges', watch=True)
+    @param.depends('node_data', 'edge_data', 'layout', 'bundle_graph_edges', watch=True)
     def update_data(self):
         
         # for loading spinner control
@@ -102,12 +83,20 @@ class Network(param.Parameterized):
         new_data = [
             self.node_data, # nodes
             self.edge_data, # edges
-            [getattr(opts, k)(**self.graph_opts[k]) for k in self.graph_opts],
             self.layout,
             {'Yes': True, 'No': False}[self.bundle_graph_edges]            
         ]
         
         self.network_data.update(data=new_data) # triggers self.view
+    
+    @param.depends('graph_opts', watch=True)
+    def update_graph_opts(self):
+        
+        self.loading = True
+        
+        self.network_pane.object = self.network_graph.opts(*[getattr(opts, k)(**self.graph_opts[k]) for k in self.graph_opts]).opts(active_tools=['point_draw'])
+        
+        self.loading = False
         
     @param.depends('click_stream.x', 'click_stream.y', watch=True)
     def get_clicked_node(self):
@@ -120,28 +109,23 @@ class Network(param.Parameterized):
         self.delta = (graph_data.x-x).abs()+(graph_data.y-y).abs().min()
         self.selected_node = (idx, label)
         
-    @param.depends('max_nodes', watch=True)
-    def update_nodes_edges(self, wait=False):
+    @param.depends('parent.show_nodes', 'parent.show_edges', watch=True)
+    def update_nodes_edges(self):
+                
+        new_nodes = self.parent.show_nodes.copy()
+        new_edges = self.parent.show_edges.copy()
         
-        # for loading spinner control
-        self.loading = True
-        
-        new_nodes = self.nodes.iloc[:self.max_nodes,:].copy()
-        new_edges = self.edges[self.edges[self.source_col].isin(new_nodes[self.index_col])&self.edges[self.target_col].isin(new_nodes[self.index_col])].copy()
-        
-        new_nodes['connectivity'] = pd.concat([new_edges.groupby(self.source_col).size(), new_edges.groupby(self.target_col).size()], axis=1).sum(axis=1).reindex(new_nodes[self.index_col]).fillna(0).values
-        new_edges['edge_width'] = scale(new_edges['combined score'], 0.25, 5)
+        new_edges['edge_width'] = scale(new_edges[self.parent.edge_score_col], 0.25, 5)
         
         self.node_clim = (new_nodes['connectivity'].min(), new_nodes['connectivity'].max()) # triggers self.update_node_clim
-        self.sel_nodes = new_nodes
         
-        if wait == True:
-            return new_nodes, new_edges
-        else:
-            self.param.set_param(node_data = new_nodes, edge_data=new_edges, graph_opts = self.graph_opts) # triggers self.update_data
+        self.param.set_param(node_data = new_nodes, edge_data = new_edges) # triggers self.update_data
         
     @param.depends('fontsize', watch=True)
     def update_fontsize(self):
+        # for loading spinner control
+        self.loading = True
+        
         if not 'Labels' in self.graph_opts:
             self.graph_opts['Labels'] = {}
         self.graph_opts['Labels'].update({'text_font_size': self.fontsize})
@@ -149,6 +133,9 @@ class Network(param.Parameterized):
     
     @param.depends('node_cmap', watch=True)
     def update_node_cmap(self):
+        # for loading spinner control
+        self.loading = True
+        
         if not 'Nodes' in self.graph_opts:
             self.graph_opts['Nodes'] = {}
         self.graph_opts['Nodes'].update({'cmap': self.node_cmap})
@@ -160,6 +147,9 @@ class Network(param.Parameterized):
         
     @param.depends('node_clim', watch=True)
     def update_node_clim(self): # Note: graph_opts must be set after call (e.g. after any change to self.node_clim)
+        # for loading spinner control
+        self.loading = True
+        
         if not 'Nodes' in self.graph_opts:
             self.graph_opts['Nodes'] = {}
         self.graph_opts['Nodes'].update({'clim': self.node_clim})
