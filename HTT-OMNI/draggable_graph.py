@@ -13,7 +13,7 @@ class DraggableGraph(param.Parameterized):
     current_layout = param.String()
     current_stream_data = param.Parameter()
     
-    stream = param.ClassSelector(default=hv.streams.PointDraw(), class_=(hv.streams.PointDraw,), precedence=-1)
+    stream = param.ClassSelector(default=hv.streams.PointDraw(add=False), class_=(hv.streams.PointDraw,), precedence=-1)
     
     def __init__(self, 
                  index_col = 'geneID', 
@@ -72,11 +72,11 @@ class DraggableGraph(param.Parameterized):
         return hv.Labels(data_, ['x', 'y'], self.label_col)
     
     def view(self, data):
-        if len(data)!=5:
-            raise ValueError('Data does not have the right number of items (nodes, edges, graph_opts, layout_algorithm, bundle_graph_edges)')
+        if len(data)!=4:
+            raise ValueError('Data does not have the right number of items (nodes, edges, layout_algorithm, bundle_graph_edges)')
         
         # unpack data = [nodes, edges, graph_opts, layout_algorithm, bundle_graph]
-        nodes, edges, graph_opts, layout_algorithm, bundle_graph_edges = data
+        nodes, edges, layout_algorithm, bundle_graph_edges = data
         
         # make sure that index, source, and target are the same dtype
         if np.unique([nodes.dtypes[self.index_col], edges.dtypes[self.source_col], edges.dtypes[self.target_col]]).shape[0]>1:
@@ -94,10 +94,12 @@ class DraggableGraph(param.Parameterized):
             new_layout = True
         elif self.current_layout!=layout_algorithm:
             new_layout = True
-        elif self.current_nodes.index.isin(nodes.index).all() and nodes.index.isin(self.current_nodes.index).all():
+        elif self.current_nodes[self.index_col].isin(nodes[self.index_col]).all() and nodes[self.index_col].isin(self.current_nodes[self.index_col]).all():
             new_layout = False
         else:
             new_layout = True
+            
+        self.new_layout = new_layout
             
         if new_layout == True:
             init_layout = pd.DataFrame(getattr(nx, '{}_layout'.format(layout_algorithm))(self.G), index=['x', 'y']).T
@@ -116,10 +118,9 @@ class DraggableGraph(param.Parameterized):
         self.current_edges = edges
         self.current_layout = layout_algorithm
         
-        return (self.edge_graph*self.node_graph*self.labels).opts(*graph_opts)        
+        return (self.edge_graph*self.node_graph*self.labels)        
     
     @param.depends('stream.data', watch=True)
     def _update(self):
         self.node_data = pd.DataFrame(self.stream.data)
         self.current_stream_data = self.stream.data
-        
