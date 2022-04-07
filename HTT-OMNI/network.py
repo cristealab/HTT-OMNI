@@ -5,6 +5,7 @@ from holoviews import opts
 import pandas as pd
 
 from draggable_graph import DraggableGraph
+from data_filter import DataFilter
 from utils import scale
 
 class Network(param.Parameterized):
