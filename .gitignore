@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 # ignore large string_edgefile.csv
-HTT-OMNI\notebooks\STRINGdb_edgefile.csv
+HTT-OMNI/notebooks/STRINGdb_edgefile.csv
