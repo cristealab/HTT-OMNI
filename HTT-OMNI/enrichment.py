@@ -8,11 +8,13 @@ import seaborn as sns
 from bokeh.models import HoverTool
 from holoviews import opts, dim
 
+from utils import save_hook
+
 class Enrichment(param.Parameterized):
     
     # enrichment query params
-    results = param.DataFrame()
-    selected_results = param.DataFrame()
+    results = param.DataFrame(precedence=-1)
+    selected_results = param.DataFrame(precedence=-1)
     run_GO_analysis = param.Action(lambda x: x.param.trigger('run_GO_analysis'))
     GO_annot = param.Selector()
     
@@ -21,8 +23,8 @@ class Enrichment(param.Parameterized):
     GO_max_FDR = param.Number(0.05, bounds = (0, 1))
     GO_min_enrichment = param.Number(1, bounds = (1, 100))
     GO_plot_title = param.String()
-    scatter_sizes = param.List([5, 10, 15, 20, 25, 30])
-    scatter_bins = param.List([0, 10, 50, 100, 200, 500])
+    scatter_sizes = param.List([5, 10, 15, 20, 25, 30], precedence=-1)
+    scatter_bins = param.List([0, 10, 50, 100, 200, 500], precedence=-1)
     
     def __init__(self, 
                  parent, 
@@ -38,7 +40,29 @@ class Enrichment(param.Parameterized):
         self.parent = parent
         self.index_col = index_col
         self.ignore_terms = ignore_terms
-        self.mapping = annot_description_mapping
+        self.desc_mapping = annot_description_mapping
+        
+        # widget_mapping
+        self.mapping = dict([
+            ('run_GO_analysis', {'button_type': 'default'}
+            ),
+            ('GO_annot', {'type': pn.widgets.Select,}
+            ),
+            ('GO_show', {'type': pn.widgets.IntSlider, 
+                      'throttled': True, 
+                      'name': 'Displayed # of enriched terms'}
+            ),
+            ('GO_max_FDR', {'type': pn.widgets.FloatInput, 
+                         'name': 'FDR cutoff', 
+                         'step': 0.01}
+            ),
+            ('GO_min_enrichment', {'type': pn.widgets.FloatInput,
+                                'name': 'Minimum fold enrichment', 
+                                'step': 0.5}
+            ),
+            ('GO_plot_title', {'type': pn.widgets.StaticText}
+            )
+        ])
         
         # add annotation description mapping keys
         objects = np.sort(list(annot_description_mapping.keys()))
@@ -69,7 +93,7 @@ class Enrichment(param.Parameterized):
         payload = {
             'geneInputList': ','.join(self.parent.sel_nodes[self.index_col].astype(str)), # comma-separated
             'organism': '9606',
-            'annotDataSet': self.mapping[self.GO_annot]
+            'annotDataSet': self.desc_mapping[self.GO_annot]
         }
 
         r = requests.post(url, data=payload)
@@ -136,7 +160,8 @@ class Enrichment(param.Parameterized):
             shared_axes=False,
         )
         
-        return (spikes*scatter).opts(spike_opts, scatter_opts)
+        
+        return (spikes*scatter).opts(spike_opts, scatter_opts, opts.Overlay(hooks = [save_hook]))
 
         
     @param.depends('results', 'GO_show', 'GO_min_enrichment', 'GO_max_FDR', watch=True)

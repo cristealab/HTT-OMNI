@@ -19,3 +19,6 @@ def scale(arr, mn, mx, arr_min = None, arr_max = None):
         return np.array([mx])
     else:
         return arr
+
+def save_hook(plot, element):
+    plot.state.output_backend = 'svg'
