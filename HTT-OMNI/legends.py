@@ -51,7 +51,8 @@ def tissue_age_leg(all_tissues, all_ages, x, graph_opts = []):
             show_legend=True,
             legend_opts = {'title':'Tissue/Age (mo)'},
             framewise=True,
-            show_frame = False
+            show_frame = False,
+            hooks = [save_hook]
         )
     ]
 
