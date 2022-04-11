@@ -128,5 +128,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# ignore large string_edgefile.csv
+# ignore large string_edgefile.csv (change this path when moved to assets/data)
 HTT-OMNI/notebooks/STRINGdb_edgefile.csv
