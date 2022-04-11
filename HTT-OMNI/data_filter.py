@@ -12,15 +12,25 @@ class DataFilter(param.Parameterized):
     sel_edges = param.DataFrame(precedence=-1)
     show_nodes = param.DataFrame(precedence=-1)
     show_edges = param.DataFrame(precedence=-1)
+    display_nodes = param.DataFrame()
     
     # node params
     node_query = param.String(default='')
     max_nodes = param.Selector(objects = [10, 20, 50, 100, 200, 300, 400, 500, 1000, 4000], default=50)
     node_display_priority = param.Selector(objects = ["# PPI observations (all)", "# PPI observations (filtered)"], default = '# PPI observations (all)')
     vis_unconnected = param.Selector(objects = ['Hide', 'Show'], default='Show')
+    PPI_sum_cutoff = param.Integer(default=1, label = 'min. # PPI observations (filtered)')
 
     # edge params
     STRINGdb_score = param.Number(0.4, bounds=(0, 1))
+    
+    # network plot title
+    network_plot_title = param.String(default = '')
+    
+    # for loading spinner control
+    loading = param.Boolean(default=False)
+    
+    reset_filters = param.Action(lambda x: x.param.trigger('reset_filters'), label='RESET FILTERS')
     
     def __init__(self, 
                  nodes, 
@@ -47,10 +57,15 @@ class DataFilter(param.Parameterized):
         
         if filter_aliases is None:
             filter_aliases = {k: k for k in self.filters}
+            
+        self.filter_aliases = filter_aliases
         
         self.check_data()
         
         self.PPI_sum = self.compute_PPI_sum(nodes)
+        
+        self.param.PPI_sum_cutoff.bounds = (int(self.PPI_sum.min()), int(self.PPI_sum.max()))
+        
         self.sym_to_index = self.nodes[[self.index_col, self.gene_symbol_col]].drop_duplicates()
         self.one_hot = self.encode_one_hot(nodes)
         self.annotations = self.one_hot.groupby(level=0, axis=1).apply(self.one_hot_to_str).reset_index(self.gene_symbol_col)
@@ -84,6 +99,18 @@ class DataFilter(param.Parameterized):
             ),
             ('STRINGdb_score', {'throttled': True}
             ),
+            ('PPI_sum_cutoff', {'type': pn.widgets.IntSlider, 
+                                'throttled': True}
+            ),
+            ('network_plot_title', {'type': pn.widgets.StaticText}
+            ),
+            ('display_nodes', {
+                'sizing_mode': 'stretch_both', 
+                'show_index': False, 
+                'autosize_mode':"fit_viewport", 
+                'frozen_columns': 2, 
+                'titles': dict([(k, self.filter_aliases[k]) for k in self.filter_aliases]+[(self.index_col, 'GeneID'), (self.gene_symbol_col, 'Gene Symbol')])
+            }),
         ]
         
         self.mapping = dict(other+default+default_AND_OR_NOT)
@@ -117,7 +144,10 @@ class DataFilter(param.Parameterized):
     def compute_PPI_sum(self, df):
         return df.groupby(self.groupby_PPI_cols).size().groupby(self.index_col).size()
     
-    def filter_nodes(self, event):
+    def filter_nodes(self, *events):
+        
+        self.loading = True
+        
         activated_filters = pd.Series([f if getattr(self, f)!=[] else np.nan for f in self.filters], index = self.filters)
 
         if not activated_filters.isnull().all():
@@ -149,10 +179,13 @@ class DataFilter(param.Parameterized):
         else:
             filtered_nodes = self.nodes
         
-        self.filtered_nodes = filtered_nodes # triggers self.update_sel_nodes
+        self.filtered_nodes = filtered_nodes # triggers self.apply_query
     
     @param.depends('node_query', 'filtered_nodes', watch=True)
     def apply_query(self):
+        
+        self.loading = True
+        
         if not self.node_query=='':
             query_nodes = pd.Series(self.node_query.strip().split('\n'))
             str_matches = self.sym_to_index[self.index_col][self.sym_to_index[self.gene_symbol_col].isin(query_nodes[~query_nodes.str.isnumeric()])].unique().tolist()
@@ -164,16 +197,22 @@ class DataFilter(param.Parameterized):
         
         else:
             self.query_found = None
-            self.queried_nodes = self.filtered_nodes
+            self.queried_nodes = self.filtered_nodes # triggers self.update_sel_nodes
         
-    @param.depends('queried_nodes', watch=True)
+    @param.depends('queried_nodes', 'PPI_sum_cutoff', watch=True)
     def update_sel_nodes(self):
         sel_nodes = self.annotations.reindex(self.queried_nodes[self.index_col].unique())
         sel_nodes['PPI_SUM_FILT'] = self.compute_PPI_sum(self.queried_nodes)
-        self.sel_nodes = sel_nodes
+        
+        sel_nodes = sel_nodes[sel_nodes['PPI_SUM_FILT']>=self.PPI_sum_cutoff]
+        
+        self.sel_nodes = sel_nodes # triggers self.update_sel_edges
         
     @param.depends('STRINGdb_score', 'sel_nodes', watch=True)
     def update_sel_edges(self):
+        
+        self.loading = True
+        
         in_source = self.edges[self.source_col].isin(self.sel_nodes.index)
         in_target = self.edges[self.target_col].isin(self.sel_nodes.index)
         pass_cutoff = self.edges[self.edge_score_col]>=self.STRINGdb_score
@@ -191,10 +230,12 @@ class DataFilter(param.Parameterized):
         PPI_SUM_B_filt = sel_edges[self.target_col].map(self.sel_nodes[PPI_SUM_filt_col])
         sel_edges['min_'+PPI_SUM_filt_col] = np.vstack([PPI_SUM_A_filt, PPI_SUM_B_filt]).min(axis=0)
         
-        self.sel_edges = sel_edges
+        self.sel_edges = sel_edges # triggers self.update_show_data
         
     @param.depends('max_nodes', 'sel_edges', 'node_display_priority', 'vis_unconnected', watch=True) 
     def update_show_data(self):
+        
+        self.loading = True
         
         node_display_priority = dict(zip(["# PPI observations (all)", "# PPI observations (filtered)"], ['PPI_SUM_TOTAL', 'PPI_SUM_FILT']))[self.node_display_priority]
 
@@ -216,4 +257,29 @@ class DataFilter(param.Parameterized):
         
         show_nodes['connectivity'] = pd.concat([show_edges.groupby(self.source_col).size(), show_edges.groupby(self.target_col).size()], axis=1).sum(axis=1).reindex(show_nodes[self.index_col]).fillna(0).values
         
+        # configure network plot title
+        if self.query_found is None:
+            if self.vis_unconnected == 'Hide':
+                self.network_plot_title = 'Displaying {} of {} nodes passing the filter criteria'.format(show_nodes.shape[0], self.sel_nodes.shape[0])
+            else:
+                self.network_plot_title = 'Displaying {} of {} nodes passing the filter criteria ({} unconnected nodes)'.format(show_nodes.shape[0], self.sel_nodes.shape[0], (show_nodes['connectivity']==0).sum())
+        else:
+            if self.vis_unconnected == 'Hide':
+                self.network_plot_title = 'Displaying {} of {} nodes passing the filter criteria ({} of {} queried nodes found in PPI network)'.format(show_nodes.shape[0], self.sel_nodes.shape[0], *self.query_found)
+            else:
+                self.network_plot_title = 'Displaying {} of {} nodes passing the filter criteria ({} of {} queried nodes found in PPI network; {} nodes unconnected)'.format(show_nodes.shape[0], self.sel_nodes.shape[0], *self.query_found, (show_nodes['connectivity']==0).sum())
+
+        self.loading = False
+        
         self.param.set_param(show_nodes = show_nodes, show_edges = show_edges) # triggers Network.update_data
+        
+    @param.depends('reset_filters', watch=True)
+    def clear_filters(self):
+        d = {f: [] for f in self.filters}
+        d.update({'PPI_sum_cutoff': 1})
+        
+        self.param.update(**d)
+        
+    @param.depends('show_nodes', watch = True)
+    def update_display_nodes(self):
+        self.display_nodes = self.show_nodes[[self.index_col, self.gene_symbol_col, 'PPI_SUM_TOTAL', 'PPI_SUM_FILT']+self.filters]
