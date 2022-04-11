@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# ignore large string_edgefile.csv
+HTT-OMNI\notebooks\STRINGdb_edgefile.csv
