@@ -1,6 +1,7 @@
 import param
 import pandas as pd
 import holoviews as hv
+from holoviews import opts
 import numpy as np
 import panel as pn
 
