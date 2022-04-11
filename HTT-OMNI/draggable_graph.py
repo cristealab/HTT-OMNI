@@ -10,8 +10,8 @@ class DraggableGraph(param.Parameterized):
     # keeps track of previous nodes, edges, and layout to maintain node positions when changing aesthetic properties
     current_nodes = param.DataFrame(precedence=-1)
     current_edges = param.DataFrame(precedence=-1)
-    current_layout = param.String()
-    current_stream_data = param.Parameter()
+    current_layout = param.String(precedence=-1)
+    current_stream_data = param.Parameter(precedence=-1)
     
     stream = param.ClassSelector(default=hv.streams.PointDraw(add=False), class_=(hv.streams.PointDraw,), precedence=-1)
     
@@ -78,47 +78,52 @@ class DraggableGraph(param.Parameterized):
         # unpack data = [nodes, edges, graph_opts, layout_algorithm, bundle_graph]
         nodes, edges, layout_algorithm, bundle_graph_edges = data
         
-        # make sure that index, source, and target are the same dtype
-        if np.unique([nodes.dtypes[self.index_col], edges.dtypes[self.source_col], edges.dtypes[self.target_col]]).shape[0]>1:
-            raise TypeError('Index, source, and target columns must have the same dtype')
-            
-        # make sure that all source and target values are present in the index column
-        # (i.e., that all edges have nodes)
-        if not (edges[self.source_col].isin(nodes[self.index_col]).all()&edges[self.target_col].isin(nodes[self.index_col]).all()):
-            raise TypeError('Values in source and/or target columns not present in node index column')
+        if nodes.shape[0]>0:
+            # make sure that index, source, and target are the same dtype
+            if np.unique([nodes.dtypes[self.index_col], edges.dtypes[self.source_col], edges.dtypes[self.target_col]]).shape[0]>1:
+                raise TypeError('Index, source, and target columns must have the same dtype')
+
+            # make sure that all source and target values are present in the index column
+            # (i.e., that all edges have nodes)
+            if not (edges[self.source_col].isin(nodes[self.index_col]).all()&edges[self.target_col].isin(nodes[self.index_col]).all()):
+                raise TypeError('Values in source and/or target columns not present in node index column')
         
-        self.G = self.make_graph(nodes, edges)
-        self.bundle_graph_edges = bundle_graph_edges
         
-        if (self.current_nodes is None) and (self.current_edges is None):
-            new_layout = True
-        elif self.current_layout!=layout_algorithm:
-            new_layout = True
-        elif self.current_nodes[self.index_col].isin(nodes[self.index_col]).all() and nodes[self.index_col].isin(self.current_nodes[self.index_col]).all():
-            new_layout = False
+            self.G = self.make_graph(nodes, edges)
+            self.bundle_graph_edges = bundle_graph_edges
+
+            if (self.current_nodes is None) and (self.current_edges is None):
+                new_layout = True
+            elif self.current_layout!=layout_algorithm:
+                new_layout = True
+            elif self.current_nodes[self.index_col].isin(nodes[self.index_col]).all() and nodes[self.index_col].isin(self.current_nodes[self.index_col]).all():
+                new_layout = False
+            else:
+                new_layout = True
+
+            self.new_layout = new_layout
+
+            if new_layout == True:
+                init_layout = pd.DataFrame(getattr(nx, '{}_layout'.format(layout_algorithm))(self.G), index=['x', 'y']).T
+                init_layout.index.name = self.index_col
+                positions = pd.concat([nodes.set_index(self.index_col), init_layout], axis=1).reset_index()
+            else:
+                positions = pd.DataFrame(self.current_stream_data)
+
+            self.node_graph = self.view_nodes(positions)
+            self.stream.source = self.node_graph
+
+            self.edge_graph = hv.DynamicMap(self.view_edges, streams = [self.stream])
+            self.labels = hv.DynamicMap(self.view_labels, streams = [self.stream])
+
+            self.current_nodes = nodes
+            self.current_edges = edges
+            self.current_layout = layout_algorithm
+
+            return (self.edge_graph*self.node_graph*self.labels)
+        
         else:
-            new_layout = True
-            
-        self.new_layout = new_layout
-            
-        if new_layout == True:
-            init_layout = pd.DataFrame(getattr(nx, '{}_layout'.format(layout_algorithm))(self.G), index=['x', 'y']).T
-            init_layout.index.name = self.index_col
-            positions = pd.concat([nodes.set_index(self.index_col), init_layout], axis=1).reset_index()
-        else:
-            positions = pd.DataFrame(self.current_stream_data)
-            
-        self.node_graph = self.view_nodes(positions)
-        self.stream.source = self.node_graph
-        
-        self.edge_graph = hv.DynamicMap(self.view_edges, streams = [self.stream])
-        self.labels = hv.DynamicMap(self.view_labels, streams = [self.stream])
-        
-        self.current_nodes = nodes
-        self.current_edges = edges
-        self.current_layout = layout_algorithm
-        
-        return (self.edge_graph*self.node_graph*self.labels)        
+            return None
     
     @param.depends('stream.data', watch=True)
     def _update(self):
