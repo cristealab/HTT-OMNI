@@ -100,7 +100,7 @@ tooltips = [
     ('Gene ID', f'@{geneID_col}'),
     ('Gene Symbol', f'@{geneSymbol_col}'), 
     ('# PPI observations (all)', '@PPI_SUM_TOTAL'),
-    ('Added by?', '@data_source')
+    ('Data soource', '@data_source')
 ]
 
 graph_opts = {
