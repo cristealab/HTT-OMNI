@@ -29,10 +29,11 @@ class App(param.Parameterized):
         COLS = 12
         ROW_HEIGHT = 75
         ACCENT_BASE_COLOR = '#4489ab'
+        sidebar_width = 500
 
         react = pn.template.ReactTemplate(
             title='Explore HTT Interactions', 
-            sidebar_width=500, 
+            sidebar_width=sidebar_width, 
             row_height = ROW_HEIGHT, 
             prevent_collision = True,
             header_background = ACCENT_BASE_COLOR, 
@@ -56,8 +57,7 @@ class App(param.Parameterized):
                 pn.Param(self.data_filter, parameters = ['vis_unconnected'], **param_opts), 
                 height=15
             ), 
-            pn.Param(self.data_filter, parameters = ['max_nodes', 'node_display_priority'], **param_opts), 
-        #             pn.Card(pn.Param(self.network, parameters=['tooltips'], **param_opts), title='Hover tooltip info')
+            pn.Param(self.data_filter, parameters = ['max_nodes', 'node_display_priority'], **param_opts),
         ]
 
         edge_properties = [
@@ -90,8 +90,20 @@ class App(param.Parameterized):
         )
         
         aesthetic_properties = [
-            pn.Param(self.network, parameters = ['fontsize', 'node_cmap'], **param_opts),
+            pn.Param(self.network, parameters = ['fontsize', 'node_color', 'node_cmap', 'label_color', 'cmap_centered'], **param_opts),
             pn.Card(pn.Param(self.network, parameters=['tooltips'], **param_opts), title='Hover tooltip info')
+        ]
+        
+        user_upload = [
+            pn.Column(
+                pn.Row(
+                    'Select a file to upload', 
+                    pn.Param(self.data_filter, parameters = ['user_upload_file'], **param_opts)
+                ),
+                'Required column headers: gene_id, string_id, study_id',
+                'Optional column headers: '+', '.join([i for i in self.data_filter.filters if not i=='study_id']),
+                
+            )
         ]
 
         AS_toggles = pn.Card(pn.Column(pn.Param(self.omics_viewer, parameters = ['tissues', 'ages'], **param_opts)), title='AS omics data toggles')
@@ -111,7 +123,9 @@ class App(param.Parameterized):
             pn.Column(
                 AS_toggles,
                 name = 'PLOT FILTERS'                
-            )
+            ),
+            pn.Column(*user_upload, name = 'UPLOAD DATA'),
+            max_width = sidebar_width-50
         )
 
         react.sidebar.append(sidebar)
