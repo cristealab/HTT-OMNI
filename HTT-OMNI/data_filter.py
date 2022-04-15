@@ -2,6 +2,7 @@ import param
 import panel as pn
 import pandas as pd
 import numpy as np
+from io import StringIO
 
 class DataFilter(param.Parameterized):
     filters = param.List(precedence=-1)
@@ -20,12 +21,16 @@ class DataFilter(param.Parameterized):
     node_display_priority = param.Selector(objects = ["# PPI observations (all)", "# PPI observations (filtered)"], default = '# PPI observations (all)')
     vis_unconnected = param.Selector(objects = ['Hide', 'Show'], default='Show')
     PPI_sum_cutoff = param.Integer(default=1, label = 'min. # PPI observations (filtered)')
+    color_opts = param.List(default = ['connectivity', 'data_source'])
 
     # edge params
     STRINGdb_score = param.Number(0.4, bounds=(0, 1))
     
     # network plot title
     network_plot_title = param.String(default = '')
+    
+    # user upload of data
+    user_upload_file = param.Parameter()
     
     # for loading spinner control
     loading = param.Boolean(default=False)
@@ -46,8 +51,10 @@ class DataFilter(param.Parameterized):
         
         super(DataFilter, self).__init__(**params)
         
-        self.nodes = nodes
-        self.edges = edges
+        self.nodes = nodes.copy()
+        self.edges = edges.copy()
+        self.nodes['data_source'] = 'HINT'
+        
         self.index_col = index_col
         self.gene_symbol_col = gene_symbol_col
         self.groupby_PPI_cols = groupby_PPI_cols
@@ -55,27 +62,19 @@ class DataFilter(param.Parameterized):
         self.target_col = target_col
         self.edge_score_col = edge_score_col
         
+        self.STRINGdb_edgefile = None
+        self.user_data = None
+        
         if filter_aliases is None:
             filter_aliases = {k: k for k in self.filters}
             
         self.filter_aliases = filter_aliases
         
         self.check_data()
-        
-        self.PPI_sum = self.compute_PPI_sum(nodes)
-        
-        self.param.PPI_sum_cutoff.bounds = (int(self.PPI_sum.min()), int(self.PPI_sum.max()))
-        
-        self.sym_to_index = self.nodes[[self.index_col, self.gene_symbol_col]].drop_duplicates()
-        self.one_hot = self.encode_one_hot(nodes)
-        self.annotations = self.one_hot.groupby(level=0, axis=1).apply(self.one_hot_to_str).reset_index(self.gene_symbol_col)
-        self.annotations['PPI_SUM_TOTAL'] = self.PPI_sum.reindex(self.annotations.index)
-        
-        options_ = self.nodes[self.filters].apply(lambda x: np.unique(x.dropna()).tolist()).to_dict()
-        self.options_ = options_
-        self.options_map = pd.concat({f: self.nodes.groupby([self.index_col, f]).size().unstack().notnull().apply(lambda x: '{} ({})'.format(x.name, x.sum())) for f in self.filters})
-        self.options_map_r = pd.Series({(a, c): b for (a, b), c in self.options_map.iteritems()})
-        
+        self.annotate()
+                
+        self.update_options()
+                
         for opt in self.options_:
             self.param._add_parameter(opt, param.ListSelector(default = [], objects = self.options_map[opt].values.tolist()))
             self.param._add_parameter(opt+'_AND_OR_NOT', param.Selector(default = 'OR', objects = ['AND', 'OR', 'NOT']))
@@ -83,11 +82,11 @@ class DataFilter(param.Parameterized):
         self.param.watch(self.filter_nodes, self.filters+[opt+'_AND_OR_NOT' for opt in self.options_])
         
         # widget mapping
-        default = [(k, {'type': pn.widgets.MultiChoice, 'solid': False, 'placeholder': 'SHOW ALL', 'name': filter_aliases[k]}) if len(options_[k])<1000 else (k, {'type': pn.widgets.MultiSelect, 'size':10}) for k in options_]
-        default_AND_OR_NOT = [(k+'_AND_OR_NOT', {'type': pn.widgets.RadioButtonGroup}) for k in options_]
+        default = [(k, {'type': pn.widgets.MultiChoice, 'solid': False, 'placeholder': 'SHOW ALL', 'name': filter_aliases[k]}) if len(self.options_[k])<1000 else (k, {'type': pn.widgets.MultiSelect, 'size':10}) for k in self.options_]
+        default_AND_OR_NOT = [(k+'_AND_OR_NOT', {'type': pn.widgets.RadioButtonGroup}) for k in self.options_]
         other = [
             ('node_query', {'type': pn.widgets.TextAreaInput, 
-                                 'placeholder': 'Type gene IDs or gene symbols of interest (one per line) e.g.,\n123\n456\n789', 
+                                 'placeholder': 'Type human gene IDs or gene symbols of interest (one per line) e.g.,\n123\n456\n789', 
                                  'max_length': 10**10, 
                                  'min_height': 100, 
                                  'sizing_mode': 'stretch_both'}
@@ -104,13 +103,16 @@ class DataFilter(param.Parameterized):
             ),
             ('network_plot_title', {'type': pn.widgets.StaticText}
             ),
-            ('display_nodes', {
-                'sizing_mode': 'stretch_both', 
-                'show_index': False, 
-                'autosize_mode':"fit_viewport", 
-                'frozen_columns': 2, 
-                'titles': dict([(k, self.filter_aliases[k]) for k in self.filter_aliases]+[(self.index_col, 'GeneID'), (self.gene_symbol_col, 'Gene Symbol')])
-            }),
+            ('display_nodes', {'sizing_mode': 'stretch_both', 
+                               'show_index': False, 
+                               'autosize_mode':"fit_viewport", 
+                               'frozen_columns': 2, 
+                               'titles': dict([(k, self.filter_aliases[k]) for k in self.filter_aliases]+[(self.index_col, 'GeneID'), (self.gene_symbol_col, 'Gene Symbol')])}
+            ),
+            ('user_upload_file', {'type': pn.widgets.FileInput, 
+                                  'accept':'.txt,.tab', 
+                                  'multiple': False}
+            )
         ]
         
         self.mapping = dict(other+default+default_AND_OR_NOT)
@@ -129,9 +131,15 @@ class DataFilter(param.Parameterized):
         
         if not self.index_col in self.groupby_PPI_cols:
             raise KeyError('"index_col" ({}) must be present in "groupby_PPI_cols" ({})'.format(self.index_col, self.groupby_PPI_cols))
-            
-    def encode_one_hot(self, df):
-        one_hot = pd.concat({f: df.groupby([self.index_col, self.gene_symbol_col, f]).size().unstack() for f in self.filters}, axis=1).fillna(0).where(lambda x: x==0, 1).astype(bool)
+    
+    def update_options(self):
+        options_ = self.nodes[self.filters].apply(lambda x: np.unique(x.dropna()).tolist()).to_dict()
+        self.options_ = options_
+        self.options_map = pd.concat({f: self.nodes.groupby([self.index_col, f]).size().unstack().notnull().apply(lambda x: '{} ({})'.format(x.name, x.sum())) for f in self.filters})
+        self.options_map_r = pd.Series({(a, c): b for (a, b), c in self.options_map.iteritems()})
+  
+    def encode_one_hot(self, df, cols):
+        one_hot = pd.concat({col: df.groupby([self.index_col, self.gene_symbol_col, col]).size().unstack() for col in cols}, axis=1).fillna(0).where(lambda x: x==0, 1).astype(bool)
         one_hot = one_hot[one_hot.columns[one_hot.columns.get_level_values(1)!='Not reported']].copy()
         
         return one_hot
@@ -141,6 +149,16 @@ class DataFilter(param.Parameterized):
 
         return pd.Series(arr_str.sum(axis=1), index = df.index).str.replace('EMPTY, ', '').str.strip(', ')
     
+    def annotate(self):
+        self.PPI_sum = self.compute_PPI_sum(self.nodes)
+        
+        self.param.PPI_sum_cutoff.bounds = (int(self.PPI_sum.min()), int(self.PPI_sum.max()))
+        
+        self.sym_to_index = self.nodes[[self.index_col, self.gene_symbol_col]].drop_duplicates()
+        self.one_hot = self.encode_one_hot(self.nodes, self.filters+['data_source'])
+        self.annotations = self.one_hot.groupby(level=0, axis=1).apply(self.one_hot_to_str).reset_index(self.gene_symbol_col)
+        self.annotations['PPI_SUM_TOTAL'] = self.PPI_sum.reindex(self.annotations.index)
+
     def compute_PPI_sum(self, df):
         return df.groupby(self.groupby_PPI_cols).size().groupby(self.index_col).size()
     
@@ -202,6 +220,10 @@ class DataFilter(param.Parameterized):
     @param.depends('queried_nodes', 'PPI_sum_cutoff', watch=True)
     def update_sel_nodes(self):
         sel_nodes = self.annotations.reindex(self.queried_nodes[self.index_col].unique())
+        
+        if self.user_data is not None:
+            sel_nodes = pd.concat([sel_nodes, self.user_quant.reindex(sel_nodes.index)], axis=1)
+
         sel_nodes['PPI_SUM_FILT'] = self.compute_PPI_sum(self.queried_nodes)
         
         sel_nodes = sel_nodes[sel_nodes['PPI_SUM_FILT']>=self.PPI_sum_cutoff]
@@ -278,8 +300,60 @@ class DataFilter(param.Parameterized):
         d = {f: [] for f in self.filters}
         d.update({'PPI_sum_cutoff': 1})
         
-        self.param.update(**d)
+        self.param.update(**d) # triggers self.filter_nodes
         
     @param.depends('show_nodes', watch = True)
     def update_display_nodes(self):
         self.display_nodes = self.show_nodes[[self.index_col, self.gene_symbol_col, 'PPI_SUM_TOTAL', 'PPI_SUM_FILT']+self.filters]
+    
+    
+    @param.depends('user_upload_file', watch=True)
+    def add_user_data(self):
+        self.loading = True
+        
+        user_data = pd.read_csv(StringIO(self.user_upload_file.decode("utf8")), sep='\t').fillna('Not reported')
+        
+        self.user_data = user_data
+        
+        reqd_cols = ['gene_id', 'gene_symbol', 'study_id']
+        
+        if not np.isin(reqd_cols, self.user_data.columns).all():
+            raise ValueError('user upload must contain the following columns: {}'.format(reqd_cols))
+            
+        user_data['data_source'] = 'user - '+user_data['study_id']
+        
+        cols = user_data.columns
+        user_data.columns = cols.where(cols!='gene_id', self.index_col).where(cols!='gene_symbol', self.gene_symbol_col)
+        user_data[self.groupby_PPI_cols[-1]] = user_data['study_id'].copy()
+        
+        self.user_quant = user_data.set_index(self.index_col)[user_data.columns[user_data.columns.str.contains('QUANT_')]]
+        self.user_quant.columns = self.user_quant.columns.str.strip('QUANT_')
+        self.color_opts = ['connectivity', 'data_source']+self.user_quant.columns.values.tolist()
+        
+        self.user_data = self.user_data.reindex([self.index_col, self.gene_symbol_col, self.groupby_PPI_cols[-1]]+self.filters, axis=1).fillna('Not reported')
+        
+        # combine with existing nodes, dropping any existing "user added" rows
+        new_nodes = pd.concat([self.nodes[self.nodes['data_source']=='HINT'], user_data])
+        new_nodes.index = range(new_nodes.shape[0])
+        
+        self.nodes = new_nodes
+        
+        self.annotate()
+        
+        # get associated edges
+        if self.STRINGdb_edgefile is None:
+            self.STRINGdb_edgefile = pd.read_csv('.\assets\data\STRINGdb_edgefile.csv')
+            
+        gids = np.unique(self.nodes[self.index_col])
+        in_source = self.STRINGdb_edgefile[self.source_col].isin(gids)
+        in_target = self.STRINGdb_edgefile[self.target_col].isin(gids)
+        self.edges = self.STRINGdb_edgefile[in_source & in_target]
+        
+        # reset filters
+        self.clear_filters()
+        self.update_options()
+        
+        for opt in self.options_:
+            setattr(getattr(self.param, opt), 'objects', self.options_map[opt].values.tolist())
+            
+        self.filter_nodes()
