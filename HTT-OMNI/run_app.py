@@ -3,6 +3,7 @@ import numpy as np
 import holoviews as hv
 from holoviews import opts, dim
 import panel as pn
+import os
 
 from data_filter import DataFilter
 from network import Network
@@ -23,6 +24,12 @@ pn.extension(
 )
 
 pn.param.ParamMethod.loading_indicator = True
+
+# since STRINGdb_edgefile is too large to track using normal git, 
+# we'll just git track the gzipped version and unpack it locally when needed
+if not os.path.exists(r'.\assets\data\STRINGdb_edgefile.csv'):
+    stringdb_edgefile = pd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv.gz')
+    stringdb_edgefile.to_csv(r'.\assets\data\STRINGdb_edgefile.csv', index=False)
 
 nodes = pd.read_csv(r'.\assets\data\20220319_published_nodes.csv.gz', low_memory=False)
 nodes.columns = nodes.columns.str.replace(' ', '_')
@@ -73,7 +80,7 @@ filters = [
     'study_id'
 ]
 
-filter_aliases = dict(zip(filters, ['Model (species)', 'Mouse model ID', 'Cell culture subtype', 'Mouse tissue', 'HTT Length', 'Method', 'Study (first author, year, journal)']))
+filter_aliases = dict(zip(filters, ['Model (species)', 'Mouse model ID', 'Cell culture subtype', 'Mouse tissue', 'HTT length', 'Method', 'Study (first author, year, journal)']))
 
 data_filter = DataFilter(
     nodes = nodes, 
@@ -92,7 +99,8 @@ node_cmap = 'HTT_OMNI'
 tooltips = [
     ('Gene ID', f'@{geneID_col}'),
     ('Gene Symbol', f'@{geneSymbol_col}'), 
-    ('# PPI observations (all)', '@PPI_SUM_TOTAL')
+    ('# PPI observations (all)', '@PPI_SUM_TOTAL'),
+    ('Added by?', '@data_source')
 ]
 
 graph_opts = {
