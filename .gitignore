@@ -130,3 +130,4 @@ dmypy.json
 
 # ignore large string_edgefile.csv (change this path when moved to assets/data)
 HTT-OMNI/notebooks/STRINGdb_edgefile.csv
+HTT-OMNI/assets/data/STRINGdb_edgefile.csv
