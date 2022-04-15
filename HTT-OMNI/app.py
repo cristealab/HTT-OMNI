@@ -37,8 +37,8 @@ class App(param.Parameterized):
             row_height = ROW_HEIGHT, 
             prevent_collision = True,
             header_background = ACCENT_BASE_COLOR, 
-            logo = 'CHDI_logo_white.png',
-            favicon = 'CHDI_logo.png',
+            logo = r'.\assets\images\CHDI_logo_white.png',
+            favicon = r'.\assets\images\CHDI_logo.png',
             cols={'lg': COLS, 'md': COLS, 'sm': COLS, 'xs': COLS, 'xxs': COLS},
         )
         
