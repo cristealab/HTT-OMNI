@@ -32,9 +32,25 @@ class Network(param.Parameterized):
     
     # network styling
     fontsize = param.Selector(default = '10pt', objects = ['{}pt'.format(i) for i in range(31)])
-    node_cmap = param.Selector(objects = hv.plotting.util.list_cmaps()+['HTT_OMNI'], default='HTT_OMNI')
-    node_clim = param.Tuple(default = (None, None))
+    node_cmap = param.Selector(objects = ['Category10', 
+                                          'Category20', 
+                                          'colorblind', 
+                                          'Set2', 
+                                          'Set3', 
+                                          'HTT_OMNI', 
+                                          'YlGnBu', 
+                                          'YlOrRed', 
+                                          'Bokeh', 
+                                          'isolum', 
+                                          'Spectral', 
+                                          'RdBu_r', 
+                                          'RdGy_r'], 
+                               default='HTT_OMNI')
+    node_color = param.Selector(default = 'connectivity', objects = ['connectivity', 'data_source'])
     tooltips = param.ListSelector(default = [])
+    label_color = param.Selector(default = 'black', objects = ['black', 'white'])
+    cmap_centered = param.Boolean(default=False)
+    node_clim = param.Tuple(default  = (None, None), precedence=-1)
     
     # parent DataFiter
     parent = param.ClassSelector(DataFilter, precedence=-1)
@@ -107,8 +123,11 @@ class Network(param.Parameterized):
             self.graph_opts['Graph'] = {}
         self.graph_opts['Graph'].update({'cmap': node_cmap})
         
+        self.param.node_color.objects = self.parent.color_opts
+        
         self.update_sel_nodes()
         self.update_nodes_edges() # triggers self.update_data
+        self.make_network_cbar()
         
         # set tooltips to user provided tooltips
         self.tooltips = [i[0] for i in user_tooltips] # triggers self.update_tooltips
@@ -116,10 +135,11 @@ class Network(param.Parameterized):
     @param.depends('network_data.data', 'graph_opts', watch=True) # this method is the money maker!
     def view(self):
         self.loading=True
-        network_graph = self.graph.view(self.network_data.data).opts(*[getattr(opts, k)(**self.graph_opts[k]) for k in self.graph_opts]).opts(active_tools=['point_draw'])
+        network_graph = self.graph.view(self.network_data.data)
         
         if network_graph is not None:
             self.click_stream.source = self.graph.edge_graph
+            network_graph = network_graph.opts(*[getattr(opts, k)(**self.graph_opts[k]) for k in self.graph_opts]).opts(active_tools=['point_draw'])
 
             if self.selected_node == (None, None): # only on initialization
                 self.selected_node = tuple(self.node_data.iloc[0,:][[self.index_col, self.label_col]])
@@ -142,17 +162,7 @@ class Network(param.Parameterized):
         ]
         
         self.network_data.update(data=new_data) # triggers self.view
-    
-#     @param.depends('graph_opts', watch=True)
-#     def update_graph_opts(self):
-        
-#         self.loading = True
-        
-#         if self.network_graph is not None:
-#             self.network_pane.object = self.network_pane.object.opts(*[getattr(opts, k)(**self.graph_opts[k]) for k in self.graph_opts]).opts(active_tools=['point_draw'])
-        
-#         self.loading = False
-        
+            
     @param.depends('click_stream.x', 'click_stream.y', watch=True)
     def get_clicked_node(self):
         
@@ -176,9 +186,7 @@ class Network(param.Parameterized):
         new_edges = self.parent.show_edges.copy()
         
         new_edges['edge_width'] = scale(new_edges[self.parent.edge_score_col], 0.25, 5)
-        
-        self.node_clim = (new_nodes['connectivity'].min(), new_nodes['connectivity'].max()) # triggers self.update_node_clim
-        
+                
         self.param.set_param(node_data = new_nodes, edge_data = new_edges) # triggers self.update_data
         
     @param.depends('parent.sel_nodes', watch=True)
@@ -214,8 +222,24 @@ class Network(param.Parameterized):
         
         self.param.set_param(graph_opts = self.graph_opts)
         
+    @param.depends('node_color', watch=True)
+    def update_node_color(self): 
+        
+        self.loading = True
+        
+        if not 'Nodes' in self.graph_opts:
+            self.graph_opts['Nodes'] = {}
+        self.graph_opts['Nodes'].update({'color': self.node_color})
+        if not 'Graph' in self.graph_opts:
+            self.graph_opts['Graph'] = {}
+        self.graph_opts['Graph'].update({'node_color': self.node_color})
+        
+        self.param.set_param(graph_opts = self.graph_opts)
+        
     @param.depends('node_clim', watch=True)
-    def update_node_clim(self): # Note: graph_opts must be set after call (e.g. after any change to self.node_clim)
+    def update_node_clim(self):
+        
+        self.loading = True
         
         if not 'Nodes' in self.graph_opts:
             self.graph_opts['Nodes'] = {}
@@ -223,6 +247,34 @@ class Network(param.Parameterized):
         if not 'Graph' in self.graph_opts:
             self.graph_opts['Graph'] = {}
         self.graph_opts['Graph'].update({'clim': self.node_clim})
+        
+        self.param.set_param(graph_opts = self.graph_opts)
+        
+    @param.depends('cmap_centered', 'node_color', watch = True)
+    def center_clim_bounds(self):
+        if pd.api.types.is_numeric_dtype(self.parent.show_nodes[self.node_color]):
+            min_, max_ = (self.parent.show_nodes[self.node_color].min(), self.parent.show_nodes[self.node_color].max())
+            if self.cmap_centered == False:
+                clim = (min_, max_)
+            else:
+                if (self.parent.show_nodes[self.node_color]>0).any() and (self.parent.show_nodes[self.node_color]<0).any():
+                    bound = max(abs(min_), abs(max_))
+                    clim = (-bound, bound)
+                else:
+                    clim = (min_, max_)
+                    
+            self.node_clim = clim
+         
+    @param.depends('label_color', watch=True)
+    def update_label_color(self):
+        
+        self.loading=True
+        
+        if not 'Labels' in self.graph_opts:
+            self.graph_opts['Labels'] = {}
+        self.graph_opts['Labels'].update({'text_color': self.label_color})
+        
+        self.param.set_param(graph_opts = self.graph_opts)
         
     @param.depends('parent.loading', watch=True)
     def update_loading(self):
@@ -233,10 +285,16 @@ class Network(param.Parameterized):
     def network_loading(self):
         self.network_pane.loading = self.loading
         
-    @param.depends('node_clim', 'node_cmap', watch = True)
+    @param.depends('node_color', 'node_cmap', 'node_clim', watch = True)
     def make_network_cbar(self):
-        cbar = nodes_colorbar(cmap=self.graph_opts['Nodes']['cmap'], clim = self.node_clim)
-        self.cbar_pane.object = cbar
+        
+        # show colorbar only if dtype of node_color column is numeric
+        if pd.api.types.is_numeric_dtype(self.parent.show_nodes[self.node_color]):
+            cbar = nodes_colorbar(cmap=self.graph_opts['Nodes']['cmap'], clim = self.node_clim, by=self.node_color)
+            self.cbar_pane.object = cbar
+            self.cbar_pane.visible = True
+        else:
+            self.cbar_pane.visible = False          
     
     @param.depends('tooltips', watch=True)
     def update_tooltips(self):
@@ -248,6 +306,12 @@ class Network(param.Parameterized):
         self.graph_opts['Nodes'].update({'tools': [hover]})
         
         self.param.set_param(graph_opts = self.graph_opts)
+        
+    @param.depends('parent.color_opts', watch = True)
+    def update_color_opts(self):
+        if not self.node_color in self.parent.color_opts:
+            self.node_color = 'connectivity'
+        self.param.node_color.objects = self.parent.color_opts
         
     ##### need to configure these to only include relevant columns ######
     def export_show_nodes(self):
