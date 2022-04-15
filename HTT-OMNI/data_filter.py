@@ -342,7 +342,7 @@ class DataFilter(param.Parameterized):
         
         # get associated edges
         if self.STRINGdb_edgefile is None:
-            self.STRINGdb_edgefile = pd.read_csv('.\assets\data\STRINGdb_edgefile.csv')
+            self.STRINGdb_edgefile = pd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv')
             
         gids = np.unique(self.nodes[self.index_col])
         in_source = self.STRINGdb_edgefile[self.source_col].isin(gids)
