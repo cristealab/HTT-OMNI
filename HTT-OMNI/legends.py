@@ -28,12 +28,12 @@ def make_colorbar(cmap, clim, orientation = 'horizontal', position = 'top', **kw
 
     return hm.opts(**hm_opts)
 
-def nodes_colorbar(cmap, clim):
+def nodes_colorbar(cmap, clim, by):
     return make_colorbar(cmap, 
                          clim, 
 #                           height = 18, 
                           #width = 'auto', 
-                          title = 'node color = connectivity', 
+                          title = f'node color = {by}', 
                           background_fill_alpha=0, 
                           padding=0, 
                           )
