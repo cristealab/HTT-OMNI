@@ -183,4 +183,4 @@ class App(param.Parameterized):
         self.template = react        
         
     def view(self):
-        self.template.show()
+        self.template.servable()
