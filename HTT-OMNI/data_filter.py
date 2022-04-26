@@ -36,7 +36,8 @@ class DataFilter(param.Parameterized):
     loading = param.Boolean(default=False)
     
     reset_filters = param.Action(lambda x: x.param.trigger('reset_filters'), label='RESET FILTERS')
-    
+    remove_user_data = param.Action(lambda x: x.param.trigger('remove_user_data'), label='REMOVE USER DATA')
+
     def __init__(self, 
                  nodes, 
                  edges, 
@@ -369,3 +370,33 @@ class DataFilter(param.Parameterized):
                 setattr(getattr(self.param, opt), 'objects', self.options_map[opt].values.tolist())
                 
             self.filter_nodes()
+
+    @param.depends('remove_user_data', watch=True)
+    def yeet_user_data(self):
+
+        if self.user_data is not None:
+            self.user_data = None
+            
+            new_nodes = self.nodes[self.nodes['data_source']=='HINT'].copy()
+            new_nodes.index = range(new_nodes.shape[0])
+            
+            self.nodes = new_nodes
+            
+            self.annotate()
+                
+            gids = np.unique(self.nodes[self.index_col])
+            in_source = self.STRINGdb_edgefile[self.source_col].isin(gids)
+            in_target = self.STRINGdb_edgefile[self.target_col].isin(gids)
+            self.edges = self.STRINGdb_edgefile[in_source & in_target]
+            
+            # reset filters
+            self.clear_filters()
+            self.update_options()
+            
+            for opt in self.options_:
+                setattr(getattr(self.param, opt), 'objects', self.options_map[opt].values.tolist())
+                
+            self.filter_nodes()
+
+            # notify user
+            pn.state.notifications.info('Network reset to initial state', duration=0)

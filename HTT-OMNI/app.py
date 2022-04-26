@@ -92,6 +92,7 @@ class App(param.Parameterized):
                 ),
                 'Required column headers: gene_id, string_id, study_id',
                 'Optional column headers: '+', '.join([i for i in self.data_filter.filters if not i=='study_id']),
+                pn.Param(self.data_filter, parameters = ['remove_user_data'], **param_opts),
                 
             )
         ]
