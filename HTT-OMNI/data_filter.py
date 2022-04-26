@@ -318,42 +318,49 @@ class DataFilter(param.Parameterized):
         reqd_cols = ['gene_id', 'gene_symbol', 'study_id']
         
         if not np.isin(reqd_cols, self.user_data.columns).all():
-            raise ValueError('user upload must contain the following columns: {}'.format(reqd_cols))
+            pn.state.notifications.error('user upload must contain the following columns: {}'.format(reqd_cols), duration=0)
+        elif user_data[['gene_id', 'study_id']].duplicated().any():
+            pn.state.notifications.error('duplicate genes found', duration=0)
+        else:
             
-        user_data['data_source'] = 'user - '+user_data['study_id']
-        
-        cols = user_data.columns
-        user_data.columns = cols.where(cols!='gene_id', self.index_col).where(cols!='gene_symbol', self.gene_symbol_col)
-        user_data[self.groupby_PPI_cols[-1]] = user_data['study_id'].copy()
-        
-        self.user_quant = user_data.set_index(self.index_col)[user_data.columns[user_data.columns.str.contains('QUANT_')]]
-        self.user_quant.columns = self.user_quant.columns.str.strip('QUANT_')
-        self.color_opts = ['connectivity', 'data_source']+self.user_quant.columns.values.tolist()
-        
-        self.user_data = self.user_data.reindex([self.index_col, self.gene_symbol_col, self.groupby_PPI_cols[-1]]+self.filters, axis=1).fillna('Not reported')
-        
-        # combine with existing nodes, dropping any existing "user added" rows
-        new_nodes = pd.concat([self.nodes[self.nodes['data_source']=='HINT'], user_data])
-        new_nodes.index = range(new_nodes.shape[0])
-        
-        self.nodes = new_nodes
-        
-        self.annotate()
-        
-        # get associated edges
-        if self.STRINGdb_edgefile is None:
-            self.STRINGdb_edgefile = pd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv')
+            user_data['data_source'] = 'user - '+user_data['study_id']
             
-        gids = np.unique(self.nodes[self.index_col])
-        in_source = self.STRINGdb_edgefile[self.source_col].isin(gids)
-        in_target = self.STRINGdb_edgefile[self.target_col].isin(gids)
-        self.edges = self.STRINGdb_edgefile[in_source & in_target]
-        
-        # reset filters
-        self.clear_filters()
-        self.update_options()
-        
-        for opt in self.options_:
-            setattr(getattr(self.param, opt), 'objects', self.options_map[opt].values.tolist())
+            cols = user_data.columns
+            user_data.columns = cols.where(cols!='gene_id', self.index_col).where(cols!='gene_symbol', self.gene_symbol_col)
+            user_data[self.groupby_PPI_cols[-1]] = user_data['study_id'].copy()
             
-        self.filter_nodes()
+            self.user_quant = user_data.set_index(self.index_col)[user_data.columns[user_data.columns.str.contains('QUANT_')]]
+            self.user_quant.columns = self.user_quant.columns.str.strip('QUANT_')
+            self.color_opts = ['connectivity', 'data_source']+self.user_quant.columns.values.tolist()
+            
+            self.user_data = self.user_data.reindex([self.index_col, self.gene_symbol_col, self.groupby_PPI_cols[-1]]+self.filters, axis=1).fillna('Not reported')
+            
+            # combine with existing nodes, dropping any existing "user added" rows
+            new_nodes = pd.concat([self.nodes[self.nodes['data_source']=='HINT'], user_data])
+            new_nodes.index = range(new_nodes.shape[0])
+            
+            self.nodes = new_nodes
+            
+            self.annotate()
+            
+            # get associated edges
+            if self.STRINGdb_edgefile is None:
+                self.STRINGdb_edgefile = pd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv')
+                
+            gids = np.unique(self.nodes[self.index_col])
+            in_source = self.STRINGdb_edgefile[self.source_col].isin(gids)
+            in_target = self.STRINGdb_edgefile[self.target_col].isin(gids)
+            self.edges = self.STRINGdb_edgefile[in_source & in_target]
+
+            is_new = (~self.annotations['data_source'].str.contains('HINT')).sum()
+            existing = (self.annotations['data_source'].str.contains('HINT')&self.annotations['data_source']!='HINT').sum()
+            pn.state.notifications.info('{} new nodes added to the network\n{} existing nodes found in user uploaded data'.format(is_new, existing), duration=0)
+            
+            # reset filters
+            self.clear_filters()
+            self.update_options()
+            
+            for opt in self.options_:
+                setattr(getattr(self.param, opt), 'objects', self.options_map[opt].values.tolist())
+                
+            self.filter_nodes()
