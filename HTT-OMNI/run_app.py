@@ -16,11 +16,10 @@ from legends import tissue_age_leg
 hv.extension('bokeh')
 
 pn.extension(
-    sizing_mode='stretch_width', 
-    min_height=0, 
-    min_width=0, 
+    sizing_mode='stretch_width',
     loading_spinner='dots', 
-    loading_color='#4489ab'
+    loading_color='#4489ab',
+    notifications = True
 )
 
 pn.param.ParamMethod.loading_indicator = True
