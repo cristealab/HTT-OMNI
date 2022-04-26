@@ -91,10 +91,10 @@ class Network(param.Parameterized):
         ]) 
         
         # export to csv
-        self.export_show_nodes_button = pn.widgets.FileDownload(callback = self.export_show_nodes, filename = 'current_network_nodes.tab', label= 'Export current network nodes')
-        self.export_show_edges_button = pn.widgets.FileDownload(callback = self.export_show_edges, filename = 'current_network_edges.tab', label= 'Export current network edges')
-        self.export_sel_nodes_button = pn.widgets.FileDownload(callback = self.export_sel_nodes, filename = 'all_filtered_nodes.tab', label= 'Export all filtered nodes')
-        self.export_sel_edges_button = pn.widgets.FileDownload(callback = self.export_sel_edges, filename = 'all_filtered_edges.tab', label= 'Export all filtered edges')
+        self.export_show_nodes_button = pn.widgets.FileDownload(callback = self.export_show_nodes, filename = 'current_network_nodes.tab', label= 'Export current network nodes', button_type = 'primary')
+        self.export_show_edges_button = pn.widgets.FileDownload(callback = self.export_show_edges, filename = 'current_network_edges.tab', label= 'Export current network edges', button_type = 'primary')
+        self.export_sel_nodes_button = pn.widgets.FileDownload(callback = self.export_sel_nodes, filename = 'all_filtered_nodes.tab', label= 'Export all filtered nodes', button_type = 'default')
+        self.export_sel_edges_button = pn.widgets.FileDownload(callback = self.export_sel_edges, filename = 'all_filtered_edges.tab', label= 'Export all filtered edges', button_type = 'default')
 
         self.network_pane = pn.pane.HoloViews(sizing_mode = 'stretch_both', linked_axes=False, min_height=0, min_width=0)
         self.cbar_pane = pn.pane.HoloViews(sizing_mode='stretch_width', linked_axes=False, min_height=0, min_width=0)
