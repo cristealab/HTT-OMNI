@@ -124,10 +124,14 @@ class Network(param.Parameterized):
         self.graph_opts['Graph'].update({'cmap': node_cmap})
         
         self.param.node_color.objects = self.parent.color_opts
+
+        # set up ordered param watching for cmap_centered, node
+        self.param.watch(self.set_graph_opts_cmap_centered, 'cmap_centered', queued=True, precedence=2)
         
         self.update_sel_nodes()
         self.update_nodes_edges() # triggers self.update_data
         self.make_network_cbar()
+        self.center_clim_bounds()
         
         # set tooltips to user provided tooltips
         self.tooltips = [i[0] for i in user_tooltips] # triggers self.update_tooltips
@@ -145,7 +149,7 @@ class Network(param.Parameterized):
                 self.selected_node = tuple(self.node_data.iloc[0,:][[self.index_col, self.label_col]])
         
         self.network_pane.object = network_graph
-#         self.update_graph_opts() # Updates opts and sets self.loading to False
+
         self.loading = False
         
     @param.depends('node_data', 'edge_data', 'layout', 'bundle_graph_edges', watch=True)
@@ -239,19 +243,19 @@ class Network(param.Parameterized):
     @param.depends('node_clim', watch=True)
     def update_node_clim(self):
         
-        self.loading = True
-        
         if not 'Nodes' in self.graph_opts:
             self.graph_opts['Nodes'] = {}
         self.graph_opts['Nodes'].update({'clim': self.node_clim})
         if not 'Graph' in self.graph_opts:
             self.graph_opts['Graph'] = {}
         self.graph_opts['Graph'].update({'clim': self.node_clim})
-        
+
+    def set_graph_opts_cmap_centered(self, events):
         self.param.set_param(graph_opts = self.graph_opts)
         
-    @param.depends('cmap_centered', 'node_color', watch = True)
+    @param.depends('cmap_centered', 'node_color', 'parent.show_nodes', watch = True)
     def center_clim_bounds(self):
+        
         if pd.api.types.is_numeric_dtype(self.parent.show_nodes[self.node_color]):
             min_, max_ = (self.parent.show_nodes[self.node_color].min(), self.parent.show_nodes[self.node_color].max())
             if self.cmap_centered == False:
@@ -262,8 +266,11 @@ class Network(param.Parameterized):
                     clim = (-bound, bound)
                 else:
                     clim = (min_, max_)
-                    
+            
             self.node_clim = clim
+        
+        else:
+            self.node_clim = (None, None)
          
     @param.depends('label_color', watch=True)
     def update_label_color(self):
