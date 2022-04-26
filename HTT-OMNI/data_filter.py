@@ -313,16 +313,19 @@ class DataFilter(param.Parameterized):
         
         user_data = pd.read_csv(StringIO(self.user_upload_file.decode("utf8")), sep='\t').fillna('Not reported')
         
-        self.user_data = user_data
-        
         reqd_cols = ['gene_id', 'gene_symbol', 'study_id']
         
-        if not np.isin(reqd_cols, self.user_data.columns).all():
-            pn.state.notifications.error('user upload must contain the following columns: {}'.format(reqd_cols), duration=0)
-        elif user_data[['gene_id', 'study_id']].duplicated().any():
-            pn.state.notifications.error('duplicate genes found', duration=0)
+        if not np.isin(reqd_cols, user_data.columns).all():
+            pn.state.notifications.error('ERROR: user upload must contain the following columns: {}'.format(', '.join(reqd_cols)), duration=0)
+            self.update_show_data()
+        
         else:
+            self.user_data = user_data
             
+            if user_data[['gene_id', 'study_id']].duplicated().any():
+                pn.state.notifications.warning('WARNING: duplicate gene IDs found, dropping duplicate entries', duration=0)
+                user_data = user_data[~user_data[['gene_id', 'study_id']].duplicated()]
+
             user_data['data_source'] = 'user - '+user_data['study_id']
             
             cols = user_data.columns
@@ -353,8 +356,10 @@ class DataFilter(param.Parameterized):
             self.edges = self.STRINGdb_edgefile[in_source & in_target]
 
             is_new = (~self.annotations['data_source'].str.contains('HINT')).sum()
-            existing = (self.annotations['data_source'].str.contains('HINT')&self.annotations['data_source']!='HINT').sum()
-            pn.state.notifications.info('{} new nodes added to the network\n{} existing nodes found in user uploaded data'.format(is_new, existing), duration=0)
+            existing = (self.annotations['data_source'].str.contains('HINT')&(self.annotations['data_source']!='HINT')).sum()
+            
+            # notify user
+            pn.state.notifications.info('{} new nodes added to the network. {} existing nodes found in user uploaded data'.format(is_new, existing), duration=0)
             
             # reset filters
             self.clear_filters()
