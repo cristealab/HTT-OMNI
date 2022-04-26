@@ -94,10 +94,11 @@ filters = [
     'tissue',
     'htt_length',
     'detection_method_annot',
-    'study_id'
+    'study_id',
+    'data_source'
 ]
 
-filter_aliases = dict(zip(filters, ['Model (species)', 'Mouse model ID', 'Cell culture subtype', 'Mouse tissue', 'HTT length', 'Method', 'Study (first author, year, journal)']))
+filter_aliases = dict(zip(filters, ['Model (species)', 'Mouse model ID', 'Cell culture subtype', 'Mouse tissue', 'HTT length', 'Method', 'Study (first author, year, journal)', 'Data source']))
 
 data_filter = DataFilter(
     nodes = nodes, 
