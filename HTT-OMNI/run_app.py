@@ -30,6 +30,17 @@ css = """
 .bk-root .bk-btn-primary:hover {
       background-color: #366c87;
 }
+input[type=file] {
+    width: 100%;
+    height: 100px;
+    border-width: 3px !important;
+    border-style: dashed !important;
+    border-color: #9E9E9E !important;
+    background: #EEEEEE;
+    border-radius: 5px;
+    text-align: center;
+    margin: auto;
+}
 """
 
 pn.extension(

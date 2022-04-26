@@ -86,14 +86,11 @@ class App(param.Parameterized):
         
         user_upload = [
             pn.Column(
-                pn.Row(
-                    'Select a file to upload', 
-                    pn.Param(self.data_filter, parameters = ['user_upload_file'], **param_opts)
-                ),
+                'Select a file to upload', 
+                pn.Param(self.data_filter, parameters = ['user_upload_file'], **param_opts),
                 'Required column headers: gene_id, string_id, study_id',
                 'Optional column headers: '+', '.join([i for i in self.data_filter.filters if not i=='study_id']),
                 pn.Param(self.data_filter, parameters = ['remove_user_data'], **param_opts),
-                
             )
         ]
 
