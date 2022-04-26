@@ -15,13 +15,31 @@ from legends import tissue_age_leg
 
 hv.extension('bokeh')
 
+css = """
+.bk.card button.bk.card-header .bk.card-header-row .bk .bk.bk-clearfix {
+    font-size: 16px;
+    text-align: left;
+    padding-left: 5px;
+}
+
+.bk-root .bk-btn-primary {
+    color: #fff; 
+    background-color: #4489ab;
+}
+
+.bk-root .bk-btn-primary:hover {
+      background-color: #366c87;
+}
+"""
+
 pn.extension(
     sizing_mode='stretch_width',
     loading_spinner='dots', 
     loading_color='#4489ab',
-    notifications = True
+    notifications = True,
 )
 
+pn.config.raw_css.append(css)
 pn.param.ParamMethod.loading_indicator = True
 
 # since STRINGdb_edgefile is too large to track using normal git, 

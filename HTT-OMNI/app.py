@@ -15,16 +15,6 @@ class App(param.Parameterized):
     
     def __init__(self, **params):
         super(App, self).__init__(**params)
-        
-        css = """
-        .bk.card button.bk.card-header .bk.card-header-row .bk .bk.bk-clearfix {
-          font-size: 16px;
-          text-align: left;
-          padding-left: 5px;
-        }
-        """
-        pn.extension(raw_css=[css])
-        pn.extension(sizing_mode = 'stretch_width')
 
         COLS = 12
         ROW_HEIGHT = 75
