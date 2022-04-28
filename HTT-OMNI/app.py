@@ -124,6 +124,8 @@ class App(param.Parameterized):
 
         react.sidebar.append(sidebar)
 
+        self.go_button = pn.Param(self.enrichment, parameters = ['run_GO_analysis'], show_labels = False, **param_opts)[0]
+
         react.main[:12,:6] = pn.Tabs(
             pn.Column(
                 pn.Param(self.data_filter, parameters = ['network_plot_title'], show_labels=False, widgets = widgets, show_name = False),
@@ -140,7 +142,7 @@ class App(param.Parameterized):
             pn.Column(
                 pn.Row(
                     pn.Param(self.enrichment, parameters = ['GO_annot'], show_labels = False, **param_opts), 
-                    pn.Param(self.enrichment, parameters = ['run_GO_analysis'], show_labels = False, **param_opts)
+                    self.go_button,
                 ),
                 pn.Param(self.enrichment, parameters = ['GO_plot_title'], show_labels=False, **param_opts),
                 self.enrichment.plot_pane,
@@ -174,7 +176,11 @@ class App(param.Parameterized):
         )
         react.main[12:18, :] = pn.Card(pn.Param(self.data_filter, parameters = ['display_nodes'], **param_opts), title = 'Network nodes table')
 
-        self.template = react        
+        self.template = react   
+
+    @param.depends('enrichment.loading', watch = True)
+    def disable_go_button(self):
+        self.go_button.disabled = self.enrichment.loading  
         
     def view(self):
         self.template.servable()
