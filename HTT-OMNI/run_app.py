@@ -111,16 +111,6 @@ filters = [
 
 filter_aliases = dict(zip(filters, ['Model (species)', 'Mouse model ID', 'Cell culture subtype', 'Mouse tissue', 'HTT length', 'Method', 'Study (first author, year, journal)', 'Data source']))
 
-data_filter = DataFilter(
-    nodes = nodes, 
-    edges = edges, 
-    filters = filters, 
-    index_col=geneID_col,
-    gene_symbol_col = geneSymbol_col,
-    filter_aliases = filter_aliases,
-    groupby_PPI_cols = [geneID_col, 'source_identifier']
-)
-
 ################################# NETWORK ##############################
 node_color = 'connectivity'
 node_size = dim('PPI_SUM_TOTAL').categorize(size_dict)
@@ -160,20 +150,6 @@ graph_opts = {
     'Labels': dict(text_font_size = '10pt')
 }
 
-network = Network(
-    parent = data_filter,
-    nodes = nodes, 
-    edges = edges,
-    graph_opts = graph_opts, 
-    index_col = geneID_col, 
-    source_col = 'GENE_ID_A',
-    target_col = 'GENE_ID_B',
-    label_col = geneSymbol_col,
-    fontsize = graph_opts['Labels']['text_font_size'],
-    node_cmap = graph_opts['Nodes']['cmap'],
-    user_tooltips = tooltips,
-)
-
 ################################# ENRICHMENT ##############################
 annot_desc = {
     'GO biological process': 'GO:0003674',
@@ -186,10 +162,7 @@ annot_desc = {
     'Reactome pathways': 'ANNOT_TYPE_ID_REACTOME_PATHWAY'
 }
 
-ignore_GO_terms = ['biological_process', 'cellular process']
-
-enrichment = Enrichment(network, annot_desc, index_col=geneID_col)  
-
+ignore_GO_terms = ['biological_process', 'cellular process', 'cellular_component']
 
 ################################# OMICS PLOTS ##############################
 plot_opts = {
@@ -294,7 +267,43 @@ dummy_leg_opts = [
 
 dummy_leg = tissue_age_leg(all_tissues, all_ages, 150, graph_opts = dummy_leg_opts)
 
-omics_viewer = OmicsDataViewer(omics_data, dummy_leg = dummy_leg, parent = network, plot_opts=plot_opts)
+def user_instance():
 
-app = App(enrichment = enrichment, data_filter=data_filter, network=network, omics_viewer=omics_viewer)
-app.view()
+    data_filter = DataFilter(
+        nodes = nodes, 
+        edges = edges, 
+        filters = filters, 
+        index_col=geneID_col,
+        gene_symbol_col = geneSymbol_col,
+        filter_aliases = filter_aliases,
+        groupby_PPI_cols = [geneID_col, 'source_identifier']
+    )
+
+    network = Network(
+        parent = data_filter,
+        nodes = nodes, 
+        edges = edges,
+        graph_opts = graph_opts, 
+        index_col = geneID_col, 
+        source_col = 'GENE_ID_A',
+        target_col = 'GENE_ID_B',
+        label_col = geneSymbol_col,
+        fontsize = graph_opts['Labels']['text_font_size'],
+        node_cmap = graph_opts['Nodes']['cmap'],
+        user_tooltips = tooltips,
+    )
+
+    enrichment = Enrichment(network, annot_desc, index_col=geneID_col)  
+
+    omics_viewer = OmicsDataViewer(omics_data, dummy_leg = dummy_leg, parent = network, plot_opts=plot_opts)
+
+    app = App(
+        enrichment = enrichment, 
+        data_filter=data_filter, 
+        network=network, 
+        omics_viewer=omics_viewer,
+    )
+    
+    return app.view()
+
+user_instance()

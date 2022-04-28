@@ -176,11 +176,12 @@ class App(param.Parameterized):
         )
         react.main[12:18, :] = pn.Card(pn.Param(self.data_filter, parameters = ['display_nodes'], **param_opts), title = 'Network nodes table')
 
-        self.template = react   
+        self.template = react
+        self.template.servable()   
 
     @param.depends('enrichment.loading', watch = True)
     def disable_go_button(self):
         self.go_button.disabled = self.enrichment.loading  
         
     def view(self):
-        self.template.servable()
+        return self.template
