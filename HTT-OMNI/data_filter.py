@@ -14,6 +14,7 @@ class DataFilter(param.Parameterized):
     show_nodes = param.DataFrame(precedence=-1)
     show_edges = param.DataFrame(precedence=-1)
     display_nodes = param.DataFrame()
+    display_user_data = param.DataFrame()
     
     # node params
     node_query = param.String(default='')
@@ -113,7 +114,11 @@ class DataFilter(param.Parameterized):
             ('user_upload_file', {'type': pn.widgets.FileInput, 
                                   'accept':'.txt,.tab', 
                                   'multiple': False}
-            )
+            ),
+            ('display_user_data', {'sizing_mode': 'stretch_both',
+                                   'show_index': False, 
+                                   'autosize_mode':"fit_viewport",}
+            ),
         ]
         
         self.mapping = dict(other+default+default_AND_OR_NOT)
@@ -328,6 +333,7 @@ class DataFilter(param.Parameterized):
                 user_data = user_data[~user_data[['gene_id', 'study_id']].duplicated()]
 
             user_data['data_source'] = 'user - '+user_data['study_id']
+            self.display_user_data = user_data.copy()
             
             cols = user_data.columns
             user_data.columns = cols.where(cols!='gene_id', self.index_col).where(cols!='gene_symbol', self.gene_symbol_col)
@@ -360,7 +366,7 @@ class DataFilter(param.Parameterized):
             existing = (self.annotations['data_source'].str.contains('HINT')&(self.annotations['data_source']!='HINT')).sum()
             
             # notify user
-            pn.state.notifications.info('{} new nodes added to the network. {} existing nodes found in user uploaded data'.format(is_new, existing), duration=0)
+            pn.state.notifications.send('{} new nodes added to the network. {} existing nodes found in user uploaded data'.format(is_new, existing), background='#4489ab', icon="<i class='fa fa-info-circle' style='color: white'></i> ", duration=0)
             
             # reset filters
             self.clear_filters()
@@ -376,6 +382,7 @@ class DataFilter(param.Parameterized):
 
         if self.user_data is not None:
             self.user_data = None
+            self.display_user_data = pd.DataFrame()
             
             new_nodes = self.nodes[self.nodes['data_source']=='HINT'].copy()
             new_nodes.index = range(new_nodes.shape[0])
@@ -399,4 +406,4 @@ class DataFilter(param.Parameterized):
             self.filter_nodes()
 
             # notify user
-            pn.state.notifications.info('Network reset to initial state', duration=0)
+            pn.state.notifications.send('Network reset to initial state', background='#4489ab', icon="<i class='fa fa-info-circle' style='color: white'></i> ", duration=0)
