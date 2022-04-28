@@ -25,6 +25,9 @@ class Enrichment(param.Parameterized):
     GO_plot_title = param.String()
     scatter_sizes = param.List([5, 10, 15, 20, 25, 30], precedence=-1)
     scatter_bins = param.List([0, 10, 50, 100, 200, 500], precedence=-1)
+
+    # for loading spinner control
+    loading = param.Boolean(False)
     
     def __init__(self, 
                  parent, 
@@ -179,3 +182,7 @@ class Enrichment(param.Parameterized):
             self.plot_pane.visible = True
         else:
             self.plot_pane.visible = False
+
+    @param.depends('loading', watch = True)
+    def update_loading(self):
+        self.plot_pane.loading = self.loading
