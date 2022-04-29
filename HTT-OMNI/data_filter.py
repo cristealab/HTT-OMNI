@@ -357,7 +357,7 @@ class DataFilter(param.Parameterized):
             gids = np.unique(self.nodes[self.index_col])
             in_source = self.STRINGdb_edgefile[self.source_col].isin(gids)
             in_target = self.STRINGdb_edgefile[self.target_col].isin(gids)
-            self.edges = self.STRINGdb_edgefile[in_source & in_target]
+            self.edges = self.STRINGdb_edgefile[in_source & in_target].copy()
 
             is_new = (~self.annotations['data_source'].str.contains('HINT')).sum()
             existing = (self.annotations['data_source'].str.contains('HINT')&(self.annotations['data_source']!='HINT')).sum()
