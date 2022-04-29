@@ -58,6 +58,12 @@ pn.param.ParamMethod.loading_indicator = True
 if not os.path.exists(r'.\assets\data\STRINGdb_edgefile.csv'):
     stringdb_edgefile = pd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv.gz')
     stringdb_edgefile.to_csv(r'.\assets\data\STRINGdb_edgefile.csv', index=False)
+    
+    if not 'STRINGdb_edgefile' in pn.state.cache:
+        pn.state.cache['STRINGdb_edgefile'] = stringdb_edgefile
+
+if not 'STRINGdb_edgefile' in pn.state.cache:
+    pn.state.cache['STRINGdb_edgefile'] = pd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv')
 
 if 'nodes' in pn.state.cache:
     nodes = pn.state.cache['nodes']

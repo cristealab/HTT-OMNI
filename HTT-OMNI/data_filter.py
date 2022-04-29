@@ -64,7 +64,8 @@ class DataFilter(param.Parameterized):
         self.target_col = target_col
         self.edge_score_col = edge_score_col
         
-        self.STRINGdb_edgefile = None
+        self.STRINGdb_edgefile = pn.state.cache['STRINGdb_edgefile']
+
         self.user_data = None
         
         if filter_aliases is None:
@@ -352,10 +353,6 @@ class DataFilter(param.Parameterized):
             self.nodes = new_nodes
             
             self.annotate()
-            
-            # get associated edges
-            if self.STRINGdb_edgefile is None:
-                self.STRINGdb_edgefile = pd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv')
                 
             gids = np.unique(self.nodes[self.index_col])
             in_source = self.STRINGdb_edgefile[self.source_col].isin(gids)
