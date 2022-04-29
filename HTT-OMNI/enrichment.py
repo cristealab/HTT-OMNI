@@ -84,7 +84,7 @@ class Enrichment(param.Parameterized):
         else:
             self.param.set_param(results=init_results)
         
-        self.update_results()
+        self.results = pd.read_csv(r'.\assets\data\init_GO_results.csv')
             
     @param.depends('run_GO_analysis', watch=True)   
     def PantherGO_enrichment(self):
