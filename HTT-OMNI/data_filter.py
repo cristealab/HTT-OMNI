@@ -330,7 +330,7 @@ class DataFilter(param.Parameterized):
             
             if user_data[['gene_id', 'study_id']].duplicated().any():
                 pn.state.notifications.warning('WARNING: duplicate gene IDs found, dropping duplicate entries', duration=0)
-                user_data = user_data[~user_data[['gene_id', 'study_id']].duplicated()]
+                user_data = user_data[~user_data[['gene_id', 'study_id']].duplicated()].copy()
 
             user_data['data_source'] = 'user - '+user_data['study_id']
             self.display_user_data = user_data.copy()
@@ -359,7 +359,7 @@ class DataFilter(param.Parameterized):
             in_source = self.STRINGdb_edgefile[self.source_col].isin(gids)
             in_target = self.STRINGdb_edgefile[self.target_col].isin(gids)
             self.edges = self.STRINGdb_edgefile[in_source & in_target]
-
+                        
             is_new = (~self.annotations['data_source'].str.contains('HINT')).sum()
             existing = (self.annotations['data_source'].str.contains('HINT')&(self.annotations['data_source']!='HINT')).sum()
             
