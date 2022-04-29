@@ -146,11 +146,11 @@ class DataFilter(param.Parameterized):
   
     def encode_one_hot(self, df, cols):
         one_hot = pd.concat({col: df.groupby([self.index_col, self.gene_symbol_col, col]).size().unstack() for col in cols}, axis=1).fillna(0).where(lambda x: x==0, 1).astype(bool)
-        one_hot = one_hot[one_hot.columns[one_hot.columns.get_level_values(1)!='Not reported']].copy()
-        
+                
         return one_hot
     
-    def one_hot_to_str(self, df):
+    def one_hot_to_str(self, df_):
+        df = df_[df_.columns[df_.columns.get_level_values(1)!='Not reported']].copy()
         arr_str = np.where(df, df.columns.get_level_values(1), 'EMPTY')+', '
 
         return pd.Series(arr_str.sum(axis=1), index = df.index).str.replace('EMPTY, ', '').str.strip(', ')
