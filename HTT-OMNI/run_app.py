@@ -5,6 +5,7 @@ from holoviews import opts, dim
 import panel as pn
 import os
 import gc
+import dask.dataframe as dd
 
 from data_filter import DataFilter
 from network import Network
@@ -54,17 +55,17 @@ pn.extension(
 pn.config.raw_css.append(css)
 pn.param.ParamMethod.loading_indicator = True
 
+def unpack_STRINGdb_edgefile():
+    stringdb_edgefile = pd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv.gz')
+    stringdb_edgefile.to_csv(r'.\assets\data\STRINGdb_edgefile.csv', index=False)
+
 # since STRINGdb_edgefile is too large to track using normal git, 
 # we'll just git track the gzipped version and unpack it locally when needed
 if not os.path.exists(r'.\assets\data\STRINGdb_edgefile.csv'):
-    stringdb_edgefile = pd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv.gz')
-    stringdb_edgefile.to_csv(r'.\assets\data\STRINGdb_edgefile.csv', index=False)
-    
-    if not 'STRINGdb_edgefile' in pn.state.cache:
-        pn.state.cache['STRINGdb_edgefile'] = stringdb_edgefile
+    unpack_STRINGdb_edgefile()
 
 if not 'STRINGdb_edgefile' in pn.state.cache:
-    pn.state.cache['STRINGdb_edgefile'] = pd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv')
+    pn.state.cache['STRINGdb_edgefile'] = dd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv')
 
 if 'nodes' in pn.state.cache:
     nodes = pn.state.cache['nodes']
@@ -75,7 +76,7 @@ else:
 if 'edges' in pn.state.cache:
     edges = pn.state.cache['edges']
 else:
-    pn.state.cache['edges'] = edges = pd.read_csv(r'.\assets\data\20220319_published_edges.csv.gz')
+    pn.state.cache['edges'] = edges = dd.read_csv(r'.\assets\data\20220319_published_edges.csv')
     edges.columns = edges.columns.str.replace(' ', '_')
 
 geneID_col = 'interactor_Human_Ortholog_EntrezGeneID'
