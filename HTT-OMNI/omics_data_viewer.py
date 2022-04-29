@@ -11,7 +11,8 @@ class OmicsDataViewer(param.Parameterized):
     data = param.DataFrame(precedence=-1) # subset of input data corresponding to selected ages/tissues
     selected_node_data = param.Series(precedence=-1) # subset of data corresponding to the selected node
     averaged_nodes_data = param.Series(precedence=-1) # subset of data corresponding to the network nodes (averaged)
-    
+    model_count = param.DataFrame(precedence=-1) # model count for all nodes in parent.nodes
+
     ages = param.ListSelector()
     tissues = param.ListSelector()
     
@@ -60,8 +61,7 @@ class OmicsDataViewer(param.Parameterized):
         pcts = np.array([0.05, 0.95])
         self.desc_lims = self.data.describe(percentiles=pcts).loc[['{:.0f}%'.format(pct) for pct in pcts*100], :]
         
-        self.model_count = self.parent.nodes.groupby(self.parent.parent.groupby_PPI_cols+['model']).size().groupby([self.parent.parent.index_col,'model']).size().unstack('model').fillna(0)
-        
+        self.count_models()
         self.poly_overlays()
         
         # make plots
@@ -117,12 +117,14 @@ class OmicsDataViewer(param.Parameterized):
         
         self.selected_node_model_obs_pane = pn.pane.HoloViews(**pane_params)
         stream9 = {'ids': self.parent.param.selected_node, 
+                  'data_': self.param.model_count,
                   'data_type': self.param.type_model_obs, 
-                  'title': self.param.title_network}
+                  'title': self.param.title_network} # cannot be self.parent.param.selected_node
         self.selected_node_model_obs_pane.object = hv.DynamicMap(self.models_plot, streams = stream9)
         
         self.network_model_obs_pane = pn.pane.HoloViews(**pane_params)
         stream10 = {'ids': self.param.net_node_ids, 
+                  'data_': self.param.model_count,
                   'data_type': self.param.type_model_obs, 
                   'title': self.param.title_network}
         self.network_model_obs_pane.object = hv.DynamicMap(self.models_plot, streams = stream10)
@@ -148,7 +150,11 @@ class OmicsDataViewer(param.Parameterized):
             
         if any([self.omics_data.index.get_level_values(l).isnull().any() for l in self.omics_data.index.names]):
             raise ValueError('Index contains null values')
-            
+    
+    @param.depends('parent.parent.nodes', watch = True)
+    def count_models(self):
+        self.model_count = self.parent.parent.nodes.groupby(self.parent.parent.groupby_PPI_cols+['model']).size().groupby([self.parent.parent.index_col,'model']).size().unstack('model').fillna(0)
+
     @param.depends('ages', 'tissues', watch=True)
     def update_data(self):
         
@@ -222,13 +228,13 @@ class OmicsDataViewer(param.Parameterized):
 
         return hv.Bars(ds, 'cell type', ['log2FC abundance (Q175/WT)', 'alpha']).opts(self.plot_opts[data_type]).opts(ylabel=ylabel, title=title_)
     
-    def models_plot(self, ids, data_type, title):
+    def models_plot(self, ids, data_, data_type, title):
         if isinstance(ids, tuple):
-            data = self.model_count.loc[ids[0], :].reset_index()
+            data = data_.loc[ids[0], :].reset_index()
             title_ = ids[1]
             ylabel = '# PPI observations'
         elif isinstance(ids, list):
-            data = self.model_count.reindex(ids).sum().reset_index()
+            data = data_.reindex(ids).sum().reset_index()
             title_ = title
             ylabel = '# PPI observations (sum of all nodes)'
 

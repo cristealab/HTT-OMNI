@@ -147,11 +147,11 @@ class DataFilter(param.Parameterized):
   
     def encode_one_hot(self, df, cols):
         one_hot = pd.concat({col: df.groupby([self.index_col, self.gene_symbol_col, col]).size().unstack() for col in cols}, axis=1).fillna(0).where(lambda x: x==0, 1).astype(bool)
-        one_hot = one_hot[one_hot.columns[one_hot.columns.get_level_values(1)!='Not reported']].copy()
-        
+                
         return one_hot
     
-    def one_hot_to_str(self, df):
+    def one_hot_to_str(self, df_):
+        df = df_[df_.columns[df_.columns.get_level_values(1)!='Not reported']].copy()
         arr_str = np.where(df, df.columns.get_level_values(1), 'EMPTY')+', '
 
         return pd.Series(arr_str.sum(axis=1), index = df.index).str.replace('EMPTY, ', '').str.strip(', ')
@@ -335,6 +335,9 @@ class DataFilter(param.Parameterized):
 
             user_data['data_source'] = 'user - '+user_data['study_id']
             self.display_user_data = user_data.copy()
+
+            if 'model_species' in user_data.columns:
+                user_data['model'] = user_data['model_species'].str.split(r" (", expand=True, regex=False)[0]
             
             cols = user_data.columns
             user_data.columns = cols.where(cols!='gene_id', self.index_col).where(cols!='gene_symbol', self.gene_symbol_col)
@@ -344,12 +347,12 @@ class DataFilter(param.Parameterized):
             self.user_quant.columns = self.user_quant.columns.str.strip('QUANT_')
             self.color_opts = ['connectivity', 'data_source']+self.user_quant.columns.values.tolist()
             
-            self.user_data = self.user_data.reindex([self.index_col, self.gene_symbol_col, self.groupby_PPI_cols[-1]]+self.filters, axis=1).fillna('Not reported')
+            self.user_data = self.user_data.reindex([self.index_col, self.gene_symbol_col, self.groupby_PPI_cols[-1], 'model']+self.filters, axis=1).fillna('Not reported')
             
             # combine with existing nodes, dropping any existing "user added" rows
             new_nodes = pd.concat([self.nodes[self.nodes['data_source']=='HINT'], user_data])
             new_nodes.index = range(new_nodes.shape[0])
-            
+
             self.nodes = new_nodes
             
             self.annotate()
