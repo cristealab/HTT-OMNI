@@ -245,7 +245,7 @@ class DataFilter(param.Parameterized):
         in_target = self.edges[self.target_col].isin(self.sel_nodes.index)
         pass_cutoff = self.edges[self.edge_score_col]>=self.STRINGdb_score
         
-        sel_edges = self.edges[in_source & in_target & pass_cutoff].copy()
+        sel_edges = self.edges[in_source & in_target & pass_cutoff].compute() # convert from Dask to Pandas DF
                   
         PPI_SUM_col = 'PPI_SUM_TOTAL'
         PPI_SUM_filt_col = 'PPI_SUM_FILT'
