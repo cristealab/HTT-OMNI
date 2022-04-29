@@ -79,11 +79,6 @@ class Enrichment(param.Parameterized):
         self.plot_pane = pn.pane.HoloViews(sizing_mode='stretch_both', linked_axes=False, min_height=0, min_width=0)
         self.plot_pane.object = hv.DynamicMap(self.plot_GO_enrichment, streams = [self.param.selected_results, self.param.GO_min_enrichment, self.param.GO_max_FDR, self.param.GO_show])
         
-        if init_results is None:
-            self.param.trigger('run_GO_analysis')
-        else:
-            self.param.set_param(results=init_results)
-        
         self.results = pd.read_csv(r'.\assets\data\init_GO_results.csv')
             
     @param.depends('run_GO_analysis', watch=True)   
