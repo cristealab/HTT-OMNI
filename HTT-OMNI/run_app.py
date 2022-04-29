@@ -4,6 +4,7 @@ import holoviews as hv
 from holoviews import opts, dim
 import panel as pn
 import os
+import gc
 
 from data_filter import DataFilter
 from network import Network
@@ -279,6 +280,8 @@ dummy_leg_opts = [
 dummy_leg = tissue_age_leg(all_tissues, all_ages, 150, graph_opts = dummy_leg_opts)
 
 def user_instance():
+    
+    gc.collect()
 
     data_filter = DataFilter(
         nodes = nodes, 

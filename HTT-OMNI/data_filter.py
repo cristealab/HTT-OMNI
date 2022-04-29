@@ -64,8 +64,7 @@ class DataFilter(param.Parameterized):
         self.target_col = target_col
         self.edge_score_col = edge_score_col
         
-        self.STRINGdb_edgefile = pn.state.cache['STRINGdb_edgefile']
-
+        self.STRINGdb_edgefile = None
         self.user_data = None
         
         if filter_aliases is None:
@@ -354,13 +353,16 @@ class DataFilter(param.Parameterized):
             new_nodes.index = range(new_nodes.shape[0])
 
             self.nodes = new_nodes
-            
             self.annotate()
+            
+            # get associated edges
+            if self.STRINGdb_edgefile is None:
+                self.STRINGdb_edgefile = pd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv')
                 
             gids = np.unique(self.nodes[self.index_col])
             in_source = self.STRINGdb_edgefile[self.source_col].isin(gids)
             in_target = self.STRINGdb_edgefile[self.target_col].isin(gids)
-            self.edges = self.STRINGdb_edgefile[in_source & in_target].copy()
+            self.edges = self.STRINGdb_edgefile[in_source & in_target]
 
             is_new = (~self.annotations['data_source'].str.contains('HINT')).sum()
             existing = (self.annotations['data_source'].str.contains('HINT')&(self.annotations['data_source']!='HINT')).sum()
