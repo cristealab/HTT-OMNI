@@ -18,7 +18,7 @@ class DataFilter(param.Parameterized):
     
     # node params
     node_query = param.String(default='')
-    max_nodes = param.Selector(objects = [10, 20, 50, 100, 200, 300, 400, 500, 1000, 4000], default=50)
+    max_nodes = param.Selector(objects = [10, 20, 50, 100, 200, 300, 400, 500], default=50)
     node_display_priority = param.Selector(objects = ["# PPI observations (all)", "# PPI observations (filtered)"], default = '# PPI observations (all)')
     vis_unconnected = param.Selector(objects = ['Hide', 'Show'], default='Show')
     PPI_sum_cutoff = param.Integer(default=1, label = 'min. # PPI observations (filtered)')

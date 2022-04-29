@@ -120,7 +120,7 @@ filters = [
     'data_source'
 ]
 
-filter_aliases = dict(zip(filters, ['Model (species)', 'Mouse model ID', 'Cell culture subtype', 'Mouse tissue', 'HTT length', 'Method', 'Study (first author, year, journal)', 'Data source']))
+filter_aliases = dict(zip(filters, ['Model (species)', 'Mouse model ID', 'Cell culture subtype', 'Tissue', 'HTT length', 'Method', 'Study (first author, year, journal)', 'Data source']))
 
 ################################# NETWORK ##############################
 node_color = 'connectivity'
