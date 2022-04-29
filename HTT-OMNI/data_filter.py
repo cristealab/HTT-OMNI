@@ -376,7 +376,7 @@ class DataFilter(param.Parameterized):
             self.filter_nodes()
 
     @param.depends('remove_user_data', watch=True)
-    def yeet_user_data(self):
+    def rem_user_data(self):
 
         if self.user_data is not None:
             self.user_data = None
