@@ -54,7 +54,7 @@ class DataFilter(param.Parameterized):
         super(DataFilter, self).__init__(**params)
         
         self.nodes = nodes.copy()
-        self.edges = edges.copy()
+        self.edges = edges
         self.nodes['data_source'] = 'HINT'
         
         self.index_col = index_col
@@ -64,7 +64,6 @@ class DataFilter(param.Parameterized):
         self.target_col = target_col
         self.edge_score_col = edge_score_col
         
-        self.STRINGdb_edgefile = pn.state.cache['STRINGdb_edgefile']
         self.user_data = None
         
         if filter_aliases is None:
@@ -354,11 +353,6 @@ class DataFilter(param.Parameterized):
 
             self.nodes = new_nodes
             self.annotate()
-                
-            gids = np.unique(self.nodes[self.index_col])
-            in_source = self.STRINGdb_edgefile[self.source_col].isin(gids)
-            in_target = self.STRINGdb_edgefile[self.target_col].isin(gids)
-            self.edges = self.STRINGdb_edgefile[in_source & in_target]
                         
             is_new = (~self.annotations['data_source'].str.contains('HINT')).sum()
             existing = (self.annotations['data_source'].str.contains('HINT')&(self.annotations['data_source']!='HINT')).sum()
@@ -388,11 +382,6 @@ class DataFilter(param.Parameterized):
             self.nodes = new_nodes
             
             self.annotate()
-                
-            gids = np.unique(self.nodes[self.index_col])
-            in_source = self.STRINGdb_edgefile[self.source_col].isin(gids)
-            in_target = self.STRINGdb_edgefile[self.target_col].isin(gids)
-            self.edges = self.STRINGdb_edgefile[in_source & in_target]
             
             # reset filters
             self.clear_filters()
