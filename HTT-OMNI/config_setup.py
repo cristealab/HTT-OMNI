@@ -5,14 +5,6 @@ from holoviews import opts, dim
 import panel as pn
 import os
 import dask.dataframe as dd
-import logging
-
-LOG_FORMAT = "%(levelname)s %(asctime)s - %(message)s"
-file_handler = logging.FileHandler(filename='panel_log.txt', mode='w')
-file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
-logger = logging.getLogger(__name__)
-logger.addHandler(file_handler)
-logger.setLevel(logging.DEBUG)
 
 def setup():
     css = """
