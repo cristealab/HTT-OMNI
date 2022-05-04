@@ -253,7 +253,7 @@ class OmicsDataViewer(param.Parameterized):
 
     def data_source_plot(self, data):
         ylim = (0, data['#_nodes'].max()*1.1)
-        return hv.Bars(data, ['data_source'], ['#_nodes']).opts(self.plot_opts['model_obs']).opts(title='All filtered nodes', ylabel='# nodes', xlabel='', ylim = ylim)
+        return hv.Bars(data, ['data_source'], ['#_nodes']).opts(self.plot_opts['model_obs']).opts(title='All filtered nodes', ylabel='# nodes', xlabel='', ylim = ylim, tools=['hover'])
     
     def poly_overlays(self):
         lims = self.desc_lims[self.AS_types].stack(['type', 'Q-length']).mean(axis=1).unstack(['type', 'Q-length'])
