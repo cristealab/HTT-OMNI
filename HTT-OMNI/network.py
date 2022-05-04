@@ -34,7 +34,8 @@ class Network(param.Parameterized):
     fontsize = param.Selector(default = '10pt', objects = ['{}pt'.format(i) for i in range(31)])
     node_cmap = param.Selector(objects = ['Category10', 
                                           'Category20', 
-                                          'colorblind', 
+                                          'colorblind',
+                                          'Holoviews', 
                                           'Set2', 
                                           'Set3', 
                                           'HTT_OMNI', 
@@ -113,6 +114,8 @@ class Network(param.Parameterized):
         
         if self.node_cmap == 'HTT_OMNI':
             node_cmap = sns.blend_palette(['white', '#4489ab'], as_cmap=True)
+        elif self.node_cmap == 'Holoviews':
+            node_cmap = hv.Cycle.default_cycles["default_colors"]
         else:
             node_cmap = self.node_cmap
         
@@ -214,6 +217,9 @@ class Network(param.Parameterized):
         
         if self.node_cmap == 'HTT_OMNI':
             node_cmap = sns.blend_palette(['white', '#4489ab'], as_cmap=True)
+        elif self.node_cmap == 'Holoviews':
+            node_cmap = hv.Cycle.default_cycles["default_colors"]
+            print(node_cmap)
         else:
             node_cmap = self.node_cmap
         
