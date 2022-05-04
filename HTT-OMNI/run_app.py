@@ -4,6 +4,7 @@ import holoviews as hv
 from holoviews import opts, dim
 import panel as pn
 import os
+import gc
 
 from data_filter import DataFilter
 from network import Network
@@ -58,35 +59,46 @@ pn.param.ParamMethod.loading_indicator = True
 if not os.path.exists(r'.\assets\data\STRINGdb_edgefile.csv'):
     stringdb_edgefile = pd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv.gz')
     stringdb_edgefile.to_csv(r'.\assets\data\STRINGdb_edgefile.csv', index=False)
+    
+    if not 'STRINGdb_edgefile' in pn.state.cache:
+        pn.state.cache['STRINGdb_edgefile'] = stringdb_edgefile
 
-nodes = pd.read_csv(r'.\assets\data\20220319_published_nodes.csv.gz', low_memory=False)
-nodes.columns = nodes.columns.str.replace(' ', '_')
+if not 'STRINGdb_edgefile' in pn.state.cache:
+    pn.state.cache['STRINGdb_edgefile'] = pd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv')
 
-edges = pd.read_csv(r'.\assets\data\20220319_published_edges.csv.gz')
-edges.columns = edges.columns.str.replace(' ', '_')
+if 'nodes' in pn.state.cache:
+    nodes = pn.state.cache['nodes']
+else:
+    pn.state.cache['nodes'] = nodes = pd.read_csv(r'.\assets\data\20220319_published_nodes.csv.gz', low_memory=False)
+    nodes.columns = nodes.columns.str.replace(' ', '_')
+
+if 'edges' in pn.state.cache:
+    edges = pn.state.cache['edges']
+else:
+    pn.state.cache['edges'] = edges = pd.read_csv(r'.\assets\data\20220319_published_edges.csv.gz')
+    edges.columns = edges.columns.str.replace(' ', '_')
 
 geneID_col = 'interactor_Human_Ortholog_EntrezGeneID'
 geneSymbol_col = 'interactor_Human_Ortholog_EntrezGeneSymbol'
-
-test_nodes = nodes.groupby([geneID_col, geneSymbol_col]).size().reset_index()
-test_nodes.columns = ['geneID', 'geneSymbol', 'PPI_SUM']
-test_nodes = test_nodes.sort_values('PPI_SUM', ascending=False).iloc[:50, :]
-test_edges = edges[edges['GENE_ID_A'].isin(test_nodes['geneID'])&edges['GENE_ID_B'].isin(test_nodes['geneID'])]
 
 smallest, largest = (25, 60)
 max_PPI = 20
 size_dict = dict(zip(range(1, max_PPI+1), np.linspace(smallest, largest, max_PPI)))
 size_dict.update(dict(zip(range(max_PPI+1, 101), [largest]*len(list(range(max_PPI+1, 101))))))
 
-omics_data = pd.read_csv(r'.\assets\data\20220319_omics_data.csv', header=[0, 1, 2, 3], index_col=[0, 1])
-omics_data.index.names = ['geneSymbol', 'geneID']
-omics_data = omics_data.reset_index().set_index(['geneID', 'geneSymbol'])
-omics_data = omics_data[omics_data.index.get_level_values('geneID').isin(nodes[geneID_col])].copy()
-temp = omics_data.T.reset_index()
-temp['Q-length'] = temp['Q-length'].str.strip('Q').astype(np.int64)
-temp['age'] = temp['age'].astype(np.int64)
-temp['Tissue/Age'] = temp['tissue']+' ('+temp['age'].astype(str)+'mo)'
-omics_data = temp.set_index(omics_data.columns.names+['Tissue/Age']).T
+if 'omics_data' in pn.state.cache:
+    omics_data = pn.state.cache['omics_data']
+else:
+    omics_data = pd.read_csv(r'.\assets\data\20220319_omics_data.csv', header=[0, 1, 2, 3], index_col=[0, 1])
+    omics_data.index.names = ['geneSymbol', 'geneID']
+    omics_data = omics_data.reset_index().set_index(['geneID', 'geneSymbol'])
+    omics_data = omics_data[omics_data.index.get_level_values('geneID').isin(nodes[geneID_col])].copy()
+    temp = omics_data.T.reset_index()
+    temp['Q-length'] = temp['Q-length'].str.strip('Q').astype(np.int64)
+    temp['age'] = temp['age'].astype(np.int64)
+    temp['Tissue/Age'] = temp['tissue']+' ('+temp['age'].astype(str)+'mo)'
+    omics_data = temp.set_index(omics_data.columns.names+['Tissue/Age']).T
+    pn.state.cache['omics_data'] = omics_data
 
 all_tissues = np.unique(omics_data[['PROTEIN', 'RNA']].columns.get_level_values('tissue'))
 all_ages = np.unique(omics_data[['PROTEIN', 'RNA']].columns.get_level_values('age'))
@@ -268,6 +280,8 @@ dummy_leg_opts = [
 dummy_leg = tissue_age_leg(all_tissues, all_ages, 150, graph_opts = dummy_leg_opts)
 
 def user_instance():
+    
+    gc.collect()
 
     data_filter = DataFilter(
         nodes = nodes, 
@@ -283,13 +297,13 @@ def user_instance():
         parent = data_filter,
         nodes = nodes, 
         edges = edges,
-        graph_opts = graph_opts, 
+        graph_opts = graph_opts.copy(), 
         index_col = geneID_col, 
         source_col = 'GENE_ID_A',
         target_col = 'GENE_ID_B',
         label_col = geneSymbol_col,
         fontsize = graph_opts['Labels']['text_font_size'],
-        node_cmap = graph_opts['Nodes']['cmap'],
+        node_cmap = node_cmap,
         user_tooltips = tooltips,
     )
 
@@ -306,4 +320,7 @@ def user_instance():
     
     return app.view()
 
-user_instance()
+if __name__ == '__main__':
+    pn.serve(user_instance, show = True)
+else:
+    user_instance() # for development purposes using panel serve run_app.py --autoreload --show on the command line
