@@ -7,6 +7,7 @@ import requests
 import seaborn as sns
 from bokeh.models import HoverTool
 from holoviews import opts, dim
+import os
 
 from utils import save_hook
 
@@ -36,6 +37,7 @@ class Enrichment(param.Parameterized):
                  index_col = 'geneID', 
                  ignore_terms = [], 
                  init_results = None,
+                 background_geneIDs = None,
                  **params
                 ):
         super(Enrichment, self).__init__(**params)
@@ -44,6 +46,7 @@ class Enrichment(param.Parameterized):
         self.index_col = index_col
         self.ignore_terms = ignore_terms
         self.desc_mapping = annot_description_mapping
+        self.background_geneIDs = background_geneIDs
         
         # widget_mapping
         self.mapping = dict([
@@ -79,26 +82,34 @@ class Enrichment(param.Parameterized):
         self.plot_pane = pn.pane.HoloViews(sizing_mode='stretch_both', linked_axes=False, min_height=0, min_width=0)
         self.plot_pane.object = hv.DynamicMap(self.plot_GO_enrichment, streams = [self.param.selected_results, self.param.GO_min_enrichment, self.param.GO_max_FDR, self.param.GO_show])
         
-        self.results = pd.read_csv(r'.\assets\data\init_GO_results.csv')
+        if 'GO_init_results' in pn.state.cache:
+            self.results = pn.state.cache['GO_init_results']
+        else:
+            self.param.trigger('run_GO_analysis')
+            pn.state.cache['GO_init_results'] = self.results.copy()
+            self.results.to_csv(r'.\assets\data\init_GO_results.csv')
             
     @param.depends('run_GO_analysis', watch=True)   
     def PantherGO_enrichment(self):
         
         # for loading spinner control
         self.loading = True
-        
         url = 'http://pantherdb.org/services/oai/pantherdb/enrich/overrep'
+
         payload = {
             'geneInputList': ','.join(self.parent.sel_nodes[self.index_col].astype(str)), # comma-separated
             'organism': '9606',
-            'annotDataSet': self.desc_mapping[self.GO_annot]
+            'annotDataSet': self.desc_mapping[self.GO_annot],
         }
+
+        if self.background_geneIDs is not None:
+            payload.update({'refInputList': ','.join(self.background_geneIDs), 'refOrganism': 9606})
 
         r = requests.post(url, data=payload)
         results = r.json()['results']['result']
         results = pd.concat(list(map(pd.Series, results)), axis=1).T
         results = results[results['plus_minus']=='+']
-
+                
         if len(results)>0:
             results = pd.concat([results, results['term'].apply(lambda x: pd.Series(x))], axis=1).drop('term', axis=1)
             results = results[~results['label'].isin(self.ignore_terms)]
@@ -107,6 +118,7 @@ class Enrichment(param.Parameterized):
         self.loading = False
         
         self.results = results.infer_objects().copy()
+        
          
     def plot_GO_enrichment(self, selected_results, GO_min_enrichment, GO_max_FDR, GO_show):
         

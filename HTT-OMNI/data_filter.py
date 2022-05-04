@@ -54,7 +54,7 @@ class DataFilter(param.Parameterized):
         super(DataFilter, self).__init__(**params)
         
         self.nodes = nodes.copy()
-        self.edges = edges.copy()
+        self.edges = edges
         self.nodes['data_source'] = 'HINT'
         
         self.index_col = index_col
@@ -64,7 +64,6 @@ class DataFilter(param.Parameterized):
         self.target_col = target_col
         self.edge_score_col = edge_score_col
         
-        self.STRINGdb_edgefile = pn.state.cache['STRINGdb_edgefile']
         self.user_data = None
         
         if filter_aliases is None:
@@ -245,7 +244,7 @@ class DataFilter(param.Parameterized):
         in_target = self.edges[self.target_col].isin(self.sel_nodes.index)
         pass_cutoff = self.edges[self.edge_score_col]>=self.STRINGdb_score
         
-        sel_edges = self.edges[in_source & in_target & pass_cutoff].copy()
+        sel_edges = self.edges[in_source & in_target & pass_cutoff].compute() # convert from Dask to Pandas DF
                   
         PPI_SUM_col = 'PPI_SUM_TOTAL'
         PPI_SUM_filt_col = 'PPI_SUM_FILT'
@@ -330,7 +329,7 @@ class DataFilter(param.Parameterized):
             
             if user_data[['gene_id', 'study_id']].duplicated().any():
                 pn.state.notifications.warning('WARNING: duplicate gene IDs found, dropping duplicate entries', duration=0)
-                user_data = user_data[~user_data[['gene_id', 'study_id']].duplicated()]
+                user_data = user_data[~user_data[['gene_id', 'study_id']].duplicated()].copy()
 
             user_data['data_source'] = 'user - '+user_data['study_id']
             self.display_user_data = user_data.copy()
@@ -354,12 +353,7 @@ class DataFilter(param.Parameterized):
 
             self.nodes = new_nodes
             self.annotate()
-                
-            gids = np.unique(self.nodes[self.index_col])
-            in_source = self.STRINGdb_edgefile[self.source_col].isin(gids)
-            in_target = self.STRINGdb_edgefile[self.target_col].isin(gids)
-            self.edges = self.STRINGdb_edgefile[in_source & in_target]
-
+                        
             is_new = (~self.annotations['data_source'].str.contains('HINT')).sum()
             existing = (self.annotations['data_source'].str.contains('HINT')&(self.annotations['data_source']!='HINT')).sum()
             
@@ -376,7 +370,7 @@ class DataFilter(param.Parameterized):
             self.filter_nodes()
 
     @param.depends('remove_user_data', watch=True)
-    def yeet_user_data(self):
+    def rem_user_data(self):
 
         if self.user_data is not None:
             self.user_data = None
@@ -388,11 +382,6 @@ class DataFilter(param.Parameterized):
             self.nodes = new_nodes
             
             self.annotate()
-                
-            gids = np.unique(self.nodes[self.index_col])
-            in_source = self.STRINGdb_edgefile[self.source_col].isin(gids)
-            in_target = self.STRINGdb_edgefile[self.target_col].isin(gids)
-            self.edges = self.STRINGdb_edgefile[in_source & in_target]
             
             # reset filters
             self.clear_filters()
