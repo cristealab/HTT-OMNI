@@ -75,7 +75,6 @@ def setup():
     omics_data = pd.read_csv(r'.\assets\data\20220319_omics_data.csv', header=[0, 1, 2, 3], index_col=[0, 1])
     omics_data.index.names = ['geneSymbol', 'geneID']
     omics_data = omics_data.reset_index().set_index(['geneID', 'geneSymbol'])
-    omics_data = omics_data[omics_data.index.get_level_values('geneID').isin(nodes[geneID_col])].copy()
     temp = omics_data.T.reset_index()
     temp['Q-length'] = temp['Q-length'].str.strip('Q').astype(np.int64)
     temp['age'] = temp['age'].astype(np.int64)
@@ -91,6 +90,8 @@ def setup():
     age_dashes = dict(zip(all_ages, ['dotted', 'dashed', 'solid']))
     age_dashes.update(dict(zip(all_tissues, ['solid']*len(all_tissues))))
 
+    background_geneIDs = omics_data.index.get_level_values('geneID').astype(str).values.tolist()
+
     ############################### DATA FILTER ############################
     filters = [
         'model_species', 
@@ -104,7 +105,7 @@ def setup():
     ]
 
     filter_aliases = dict(zip(filters, ['Model (species)', 'Mouse model ID', 'Cell culture subtype', 'Tissue', 'HTT length', 'Method', 'Study (first author, year, journal)', 'Data source']))
-
+    
     ################################# NETWORK ##############################
     node_color = 'connectivity'
     node_size = dim('PPI_SUM_TOTAL').categorize(size_dict)
@@ -315,5 +316,10 @@ def setup():
     pn.state.cache['omics_data'] = omics_data
     pn.state.cache['dummy_leg'] = dummy_leg
     pn.state.cache['plot_opts'] = plot_opts
+    pn.state.cache['background_geneIDs'] = background_geneIDs
+
+    if os.path.exists(r'.\assets\data\init_GO_results.csv'):
+        pn.state.chache['GO_init_results'] = pd.read_csv(r'.\assets\data\init_GO_results.csv')
+
 
 setup()

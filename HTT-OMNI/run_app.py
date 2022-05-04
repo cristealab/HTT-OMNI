@@ -1,3 +1,4 @@
+from turtle import back
 import holoviews as hv
 import panel as pn
 import gc
@@ -23,7 +24,7 @@ def user_instance():
                       graph_opts = pn.state.cache['graph_opts'].copy(), 
                       **{k:pn.state.cache[k] for k in ['nodes', 'edges', 'index_col', 'source_col', 'target_col', 'label_col', 'fontsize', 'node_cmap', 'user_tooltips']})
 
-    enrichment = Enrichment(parent = network, **{k:pn.state.cache[k] for k in ['annot_description_mapping', 'index_col']})  
+    enrichment = Enrichment(parent = network, **{k:pn.state.cache[k] for k in ['annot_description_mapping', 'index_col', 'background_geneIDs']})  
 
     omics_viewer = OmicsDataViewer(parent = network, **{k:pn.state.cache[k] for k in ['omics_data', 'dummy_leg', 'plot_opts']})
 
