@@ -47,7 +47,8 @@ class App(param.Parameterized):
                 pn.Param(self.data_filter, parameters = ['vis_unconnected'], **param_opts), 
                 height=15
             ), 
-            pn.Param(self.data_filter, parameters = ['max_nodes', 'node_display_priority'], **param_opts),
+            pn.Param(self.data_filter, parameters = ['max_nodes', 'node_display_priority', ], **param_opts),
+            pn.Param(self.network, parameters =['min_node_size', 'max_node_size'], **param_opts)
         ]
 
         edge_properties = [

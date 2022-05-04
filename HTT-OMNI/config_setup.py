@@ -67,11 +67,6 @@ def setup():
     geneID_col = 'interactor_Human_Ortholog_EntrezGeneID'
     geneSymbol_col = 'interactor_Human_Ortholog_EntrezGeneSymbol'
 
-    smallest, largest = (25, 60)
-    max_PPI = 20
-    size_dict = dict(zip(range(1, max_PPI+1), np.linspace(smallest, largest, max_PPI)))
-    size_dict.update(dict(zip(range(max_PPI+1, 101), [largest]*len(list(range(max_PPI+1, 101))))))
-
     omics_data = pd.read_csv(r'.\assets\data\20220319_omics_data.csv', header=[0, 1, 2, 3], index_col=[0, 1])
     omics_data.index.names = ['geneSymbol', 'geneID']
     omics_data = omics_data.reset_index().set_index(['geneID', 'geneSymbol'])
@@ -108,7 +103,6 @@ def setup():
     
     ################################# NETWORK ##############################
     node_color = 'connectivity'
-    node_size = dim('PPI_SUM_TOTAL').categorize(size_dict)
     node_cmap = 'HTT_OMNI'
     tooltips = [
         ('Gene ID', f'@{geneID_col}'),
@@ -120,14 +114,12 @@ def setup():
         'Nodes': dict(
             color=node_color,
             cmap = node_cmap,
-            size = node_size,
         ),
         'Graph': dict(
             edge_color = 'grey',
             edge_line_width = 'edge_width',
             node_color = node_color,
             cmap = node_cmap,
-            node_size = node_size,
     #         clim = clim,
             tools = ['tap']
         ),

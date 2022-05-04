@@ -1,8 +1,9 @@
 import holoviews as hv
 import param
 import panel as pn
-from holoviews import opts
+from holoviews import opts, dim
 import pandas as pd
+import numpy as np
 import seaborn as sns
 from io import StringIO
 from bokeh.models import HoverTool
@@ -52,6 +53,8 @@ class Network(param.Parameterized):
     label_color = param.Selector(default = 'black', objects = ['black', 'white'])
     cmap_centered = param.Boolean(default=False)
     node_clim = param.Tuple(default  = (None, None), precedence=-1)
+    min_node_size = param.Number(default=25, bounds = (0, 150))
+    max_node_size = param.Number(default=60, bounds = (0, 150))
     
     # parent DataFiter
     parent = param.ClassSelector(DataFilter, precedence=-1)
@@ -89,6 +92,10 @@ class Network(param.Parameterized):
             ),
             ('tooltips', {'type': pn.widgets.CheckBoxGroup}
             ),
+            ('min_node_size', {'type': pn.widgets.FloatSlider, 'throttled': True, 'step': 5}
+            ),
+            ('max_node_size', {'type': pn.widgets.FloatSlider, 'throttled': True, 'step': 5}
+            ),
         ]) 
         
         # export to csv
@@ -112,6 +119,7 @@ class Network(param.Parameterized):
             label_col = self.label_col,
         )
         
+        ### configure cmap & node size ###
         if self.node_cmap == 'HTT_OMNI':
             node_cmap = sns.blend_palette(['white', '#4489ab'], as_cmap=True)
         elif self.node_cmap == 'Holoviews':
@@ -127,6 +135,17 @@ class Network(param.Parameterized):
         self.graph_opts['Graph'].update({'cmap': node_cmap})
         
         self.param.node_color.objects = self.parent.color_opts
+
+        max_PPI = 20
+        size_dict = dict(zip(range(1, max_PPI+1), np.linspace(self.min_node_size, self.max_node_size, max_PPI)))
+        size_dict.update(dict(zip(range(max_PPI+1, 101), [self.max_node_size]*len(list(range(max_PPI+1, 101))))))
+
+        if not 'Nodes' in self.graph_opts:
+            self.graph_opts['Nodes'] = {}
+        self.graph_opts['Nodes'].update({'size': dim('PPI_SUM_TOTAL').categorize(size_dict)})
+        if not 'Graph' in self.graph_opts:
+            self.graph_opts['Graph'] = {}
+        self.graph_opts['Graph'].update({'node_size': dim('PPI_SUM_TOTAL').categorize(size_dict)})
 
         # set up ordered param watching for cmap_centered, node
         self.param.watch(self.set_graph_opts_cmap_centered, 'cmap_centered', queued=True, precedence=2)
@@ -219,7 +238,6 @@ class Network(param.Parameterized):
             node_cmap = sns.blend_palette(['white', '#4489ab'], as_cmap=True)
         elif self.node_cmap == 'Holoviews':
             node_cmap = hv.Cycle.default_cycles["default_colors"]
-            print(node_cmap)
         else:
             node_cmap = self.node_cmap
         
@@ -326,7 +344,21 @@ class Network(param.Parameterized):
             self.node_color = 'connectivity'
         self.param.node_color.objects = self.parent.color_opts
         
-    ##### need to configure these to only include relevant columns ######
+    @param.depends('min_node_size', 'max_node_size', watch = True)
+    def update_node_size(self):
+        max_PPI = 20
+        size_dict = dict(zip(range(1, max_PPI+1), np.linspace(self.min_node_size, self.max_node_size, max_PPI)))
+        size_dict.update(dict(zip(range(max_PPI+1, 101), [self.max_node_size]*len(list(range(max_PPI+1, 101))))))
+
+        if not 'Nodes' in self.graph_opts:
+            self.graph_opts['Nodes'] = {}
+        self.graph_opts['Nodes'].update({'size': dim('PPI_SUM_TOTAL').categorize(size_dict)})
+        if not 'Graph' in self.graph_opts:
+            self.graph_opts['Graph'] = {}
+        self.graph_opts['Graph'].update({'node_size': dim('PPI_SUM_TOTAL').categorize(size_dict)})
+
+        self.param.set_param(graph_opts = self.graph_opts)
+
     def export_show_nodes(self):
         sio = StringIO()
         self.parent.show_nodes.to_csv(sio, sep='\t')
