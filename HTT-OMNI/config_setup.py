@@ -319,7 +319,7 @@ def setup():
     pn.state.cache['background_geneIDs'] = background_geneIDs
 
     if os.path.exists(r'.\assets\data\init_GO_results.csv'):
-        pn.state.chache['GO_init_results'] = pd.read_csv(r'.\assets\data\init_GO_results.csv')
+        pn.state.cache['GO_init_results'] = pd.read_csv(r'.\assets\data\init_GO_results.csv')
 
 
 setup()
