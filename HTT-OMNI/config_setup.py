@@ -114,7 +114,6 @@ def setup():
         ('Gene ID', f'@{geneID_col}'),
         ('Gene Symbol', f'@{geneSymbol_col}'), 
         ('# PPI observations (all)', '@PPI_SUM_TOTAL'),
-        ('Data soource', '@data_source')
     ]
 
     graph_opts = {
