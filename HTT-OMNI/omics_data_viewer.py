@@ -12,6 +12,7 @@ class OmicsDataViewer(param.Parameterized):
     selected_node_data = param.Series(precedence=-1) # subset of data corresponding to the selected node
     averaged_nodes_data = param.Series(precedence=-1) # subset of data corresponding to the network nodes (averaged)
     model_count = param.DataFrame(precedence=-1) # model count for all nodes in parent.nodes
+    data_source_count = param.DataFrame(precedence=-1) # count of nodes for different data sources (e.g., HINT vs. user-uploaded)
 
     ages = param.ListSelector()
     tissues = param.ListSelector()
@@ -128,6 +129,10 @@ class OmicsDataViewer(param.Parameterized):
                   'data_type': self.param.type_model_obs, 
                   'title': self.param.title_network}
         self.network_model_obs_pane.object = hv.DynamicMap(self.models_plot, streams = stream10)
+
+        self.network_source_count_pane = pn.pane.HoloViews(**pane_params)
+        stream11 = {'data': self.param.data_source_count,}
+        self.network_source_count_pane.object = hv.DynamicMap(self.data_source_plot, streams = stream11)
         
     def check_data(self):
         if not self.omics_data.columns.names == ['type', 'tissue', 'Q-length', 'age', 'Tissue/Age']:
@@ -176,7 +181,11 @@ class OmicsDataViewer(param.Parameterized):
         idx = list(map(tuple, self.parent.sel_nodes[[self.parent.index_col, self.parent.label_col]].values))
         data_ = self.data.reindex(idx).mean()
         data_.name = 'value'
-        self.param.set_param(averaged_nodes_data = data_, net_node_ids = self.parent.sel_nodes[self.parent.index_col].values.tolist())
+        
+        data_source_count = self.parent.parent.annotations.reindex(self.parent.sel_nodes[self.parent.index_col]).groupby('data_source').size().reset_index()
+        data_source_count.columns = ['data_source', '#_nodes']
+        
+        self.param.set_param(averaged_nodes_data = data_, net_node_ids = self.parent.sel_nodes[self.parent.index_col].values.tolist(), data_source_count=data_source_count)
     
     def AS_plot(self, data, data_type, title):
         data_ = data[data_type].reset_index()
@@ -241,6 +250,10 @@ class OmicsDataViewer(param.Parameterized):
         data.columns = ['model', '# PPI observations']
 
         return hv.Bars(data).opts(self.plot_opts[data_type]).opts(title=title_, ylabel=ylabel)
+
+    def data_source_plot(self, data):
+        ylim = (0, data['#_nodes'].max()*1.1)
+        return hv.Bars(data, ['data_source'], ['#_nodes']).opts(self.plot_opts['model_obs']).opts(title='All filtered nodes', ylabel='# nodes', xlabel='', ylim = ylim)
     
     def poly_overlays(self):
         lims = self.desc_lims[self.AS_types].stack(['type', 'Q-length']).mean(axis=1).unstack(['type', 'Q-length'])
