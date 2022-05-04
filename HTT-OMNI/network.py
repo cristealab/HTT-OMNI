@@ -1,3 +1,4 @@
+from multiprocessing import managers
 import holoviews as hv
 import param
 import panel as pn
@@ -55,7 +56,9 @@ class Network(param.Parameterized):
     node_clim = param.Tuple(default  = (None, None), precedence=-1)
     min_node_size = param.Number(default=25, bounds = (0, 150))
     max_node_size = param.Number(default=60, bounds = (0, 150))
-    
+    min_edge_width = param.Number(default=0.25, bounds = (0, 15))
+    max_edge_width = param.Number(default=5, bounds = (0, 15))
+
     # parent DataFiter
     parent = param.ClassSelector(DataFilter, precedence=-1)
     
@@ -95,6 +98,10 @@ class Network(param.Parameterized):
             ('min_node_size', {'type': pn.widgets.FloatSlider, 'throttled': True, 'step': 5}
             ),
             ('max_node_size', {'type': pn.widgets.FloatSlider, 'throttled': True, 'step': 5}
+            ),
+            ('min_edge_width', {'type': pn.widgets.FloatSlider, 'throttled': True, 'step': 0.05}
+            ),
+            ('max_edge_width', {'type': pn.widgets.FloatSlider, 'throttled': True, 'step': 0.05}
             ),
         ]) 
         
@@ -205,13 +212,13 @@ class Network(param.Parameterized):
         
         self.click_loading = False
         
-    @param.depends('parent.show_nodes', 'parent.show_edges', watch=True)
+    @param.depends('parent.show_nodes', 'parent.show_edges', 'min_edge_width', 'max_edge_width', watch=True)
     def update_nodes_edges(self):
                 
         new_nodes = self.parent.show_nodes.copy()
         new_edges = self.parent.show_edges.copy()
         
-        new_edges['edge_width'] = scale(new_edges[self.parent.edge_score_col], 0.25, 5)
+        new_edges['edge_width'] = scale(new_edges[self.parent.edge_score_col], self.min_edge_width, self.max_edge_width)
                 
         self.param.set_param(node_data = new_nodes, edge_data = new_edges) # triggers self.update_data
         

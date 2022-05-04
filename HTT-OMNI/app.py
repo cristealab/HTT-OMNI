@@ -59,6 +59,7 @@ class App(param.Parameterized):
                 pn.Param(self.network, parameters = ['bundle_graph_edges'], **param_opts),
                 height = 15
             ),
+            pn.Param(self.network, parameters = ['min_edge_width', 'max_edge_width'], **param_opts),
             pn.Column()
         ]
         
