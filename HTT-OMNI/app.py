@@ -129,26 +129,30 @@ class App(param.Parameterized):
         self.go_button = pn.Param(self.enrichment, parameters = ['run_GO_analysis'], show_labels = False, **param_opts)[0]
 
         react.main[:12,:6] = pn.Tabs(
+            # pn.Column(
+            #     pn.Param(self.data_filter, parameters = ['network_plot_title'], show_labels=False, widgets = widgets, show_name = False),
+            #     self.network.cbar_pane,
+            #     self.network.network_pane,
+            #     pn.FlexBox(
+            #         pn.Row(self.network.export_show_nodes_button, 
+            #         self.network.export_show_edges_button,), 
+            #         pn.Row(self.network.export_sel_nodes_button, 
+            #         self.network.export_sel_edges_button,),
+            #         margin=0,
+            #         justify_content = 'center'
+            #     ),
+            #     name = 'Network visualization'
+            # ),
             pn.Column(
-                pn.Param(self.data_filter, parameters = ['network_plot_title'], show_labels=False, widgets = widgets, show_name = False),
-                self.network.cbar_pane,
-                self.network.network_pane,
-                pn.Row(
-                    self.network.export_show_nodes_button, 
-                    self.network.export_show_edges_button, 
-                    self.network.export_sel_nodes_button, 
-                    self.network.export_sel_edges_button,
-                ),
-                name = 'Network visualization'
-            ),
-            pn.Column(
-                pn.Row(
-                    pn.Param(self.enrichment, parameters = ['GO_annot'], show_labels = False, **param_opts), 
-                    self.go_button,
-                ),
+                # pn.Row(
+                #     pn.Param(self.enrichment, parameters = ['GO_annot'], show_labels = False, **param_opts), 
+                #     self.go_button,
+                # ),
                 pn.Param(self.enrichment, parameters = ['GO_plot_title'], show_labels=False, **param_opts),
                 self.enrichment.plot_pane,
-                pn.Param(self.enrichment, parameters = ['GO_show', 'GO_max_FDR', 'GO_min_enrichment'], default_layout=pn.Row, **param_opts),
+                pn.FlexBox(*[pn.Param(self.enrichment, parameters = [p], width=250, min_width=0, sizing_mode='fixed', **param_opts) for p in ['GO_show', 'GO_max_FDR', 'GO_min_enrichment']],
+                            justify_content = 'center',
+                ),
                 name = 'GO/pathway enrichment analysis',
             )
         )
