@@ -125,7 +125,7 @@ class Enrichment(param.Parameterized):
         results = selected_results.copy()
         results['size'] = pd.cut(results['number_in_list'], bins=self.scatter_bins, labels = self.scatter_sizes[:-1]).astype(float).fillna(self.scatter_sizes[-1]).astype(int)
         results['num_out_of'] = results['number_in_list'].astype(str)+' (out of {}'.format(self.parent.sel_nodes[self.index_col].unique().shape[0])+')'
-
+        results['wrap_label'] = results['label'].str.wrap(60)
 
         cm = sns.blend_palette(['#ab4444', '#4489ab'], as_cmap=True)            
         clim = (results['fdr'].min(), GO_max_FDR)
@@ -137,8 +137,8 @@ class Enrichment(param.Parameterized):
                                 ('# genes', '@num_out_of')]
                      )
 
-        scatter = hv.Scatter(results, vdims=['fold_enrichment', 'size', 'fdr', 'num_out_of'], kdims = ['label'])
-        spikes = hv.Spikes(results, kdims = ['label'], vdims = ['fold_enrichment', 'fdr'])
+        scatter = hv.Scatter(results, vdims=['fold_enrichment', 'size', 'fdr', 'num_out_of'], kdims = ['wrap_label'])
+        spikes = hv.Spikes(results, kdims = ['wrap_label'], vdims = ['fold_enrichment', 'fdr'])
 
         scatter_opts = opts.Scatter(
             ylim = (None, results['fold_enrichment'].max()*1.1),
