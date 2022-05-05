@@ -33,7 +33,7 @@ def user_instance():
 
     return app.view()
 
-def cleanup():
+def cleanup(e):
     gc.collect()
 
 pn.state.on_session_destroyed(cleanup)
