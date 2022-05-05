@@ -1,6 +1,7 @@
 import holoviews as hv
 import panel as pn
 import gc
+import traceback
 
 from data_filter import DataFilter
 from network import Network
@@ -43,4 +44,8 @@ if __name__ == '__main__':
     setup() # run setup file to read variables into pn.state.cache
     pn.serve(user_instance, show = True)
 else:
-    user_instance()
+    try:
+        user_instance()
+    except Exception as e:
+        traceback.print_exc()        
+        print(e)

@@ -154,13 +154,19 @@ class Network(param.Parameterized):
             self.graph_opts['Graph'] = {}
         self.graph_opts['Graph'].update({'node_size': dim('PPI_SUM_TOTAL').categorize(size_dict)})
 
-        # set up ordered param watching for cmap_centered, node
+        # set up ordered param watching on self
         self.param.watch(self.set_graph_opts_cmap_centered, 'cmap_centered', queued=True, precedence=2)
+        self.param.watch(self.center_clim_bounds, ['cmap_centered', 'node_color'])
+        self.param.watch(self.update_nodes_edges, ['min_edge_width', 'max_edge_width'])
         
+        # set up ordered param watching on parent
+        self.parent.param.watch(self.center_clim_bounds, ['show_nodes',], precedence = 1)
+        self.parent.param.watch(self.update_nodes_edges, ['show_nodes', 'show_edges'], queued=True, precedence=2)
+
         self.update_sel_nodes()
-        self.update_nodes_edges() # triggers self.update_data
+        self.update_nodes_edges(None) # triggers self.update_data
         self.make_network_cbar()
-        self.center_clim_bounds()
+        self.center_clim_bounds(None)
         
         # set tooltips to user provided tooltips
         self.tooltips = [i[0] for i in user_tooltips] # triggers self.update_tooltips
@@ -212,8 +218,7 @@ class Network(param.Parameterized):
         
         self.click_loading = False
         
-    @param.depends('parent.show_nodes', 'parent.show_edges', 'min_edge_width', 'max_edge_width', watch=True)
-    def update_nodes_edges(self):
+    def update_nodes_edges(self, *events):
                 
         new_nodes = self.parent.show_nodes.copy()
         new_edges = self.parent.show_edges.copy()
@@ -284,8 +289,7 @@ class Network(param.Parameterized):
     def set_graph_opts_cmap_centered(self, events):
         self.param.set_param(graph_opts = self.graph_opts)
         
-    @param.depends('cmap_centered', 'node_color', 'parent.show_nodes', watch = True)
-    def center_clim_bounds(self):
+    def center_clim_bounds(self, *events):
         
         if pd.api.types.is_numeric_dtype(self.parent.show_nodes[self.node_color]):
             min_, max_ = (self.parent.show_nodes[self.node_color].min(), self.parent.show_nodes[self.node_color].max())
