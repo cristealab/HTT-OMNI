@@ -103,6 +103,10 @@ class Network(param.Parameterized):
             ),
             ('max_edge_width', {'type': pn.widgets.FloatSlider, 'throttled': True, 'step': 0.05}
             ),
+            ('node_cmap', {'name': 'Node colormap'}
+            ),
+            ('cmap_centered', {'name': 'Center colormap at zero'}
+            ),
         ]) 
         
         # export to csv
