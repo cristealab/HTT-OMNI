@@ -14,9 +14,6 @@ hv.extension('bokeh')
 
 # @profile
 def user_instance():
-    
-    gc.collect()
-
     data_filter = DataFilter(**{k:pn.state.cache[k] for k in ['nodes', 'edges', 'filters', 'index_col', 'gene_symbol_col', 'filter_aliases', 'groupby_PPI_cols']})
 
     network = Network(parent = data_filter, 
@@ -35,6 +32,11 @@ def user_instance():
     )
 
     return app.view()
+
+def cleanup():
+    gc.collect()
+
+pn.state.on_session_destroyed(cleanup)
 
 if __name__ == '__main__':
     from config_setup import setup
