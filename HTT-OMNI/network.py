@@ -33,7 +33,7 @@ class Network(param.Parameterized):
     bundle_graph_edges = param.Selector(objects = ['Yes', 'No'], default='No')
     
     # network styling
-    fontsize = param.Selector(default = '10pt', objects = ['{}pt'.format(i) for i in range(31)])
+    node_color = param.Selector(default = 'connectivity', objects = ['connectivity', 'data_source'])
     node_cmap = param.Selector(objects = ['Category10', 
                                           'Category20', 
                                           'colorblind',
@@ -49,10 +49,13 @@ class Network(param.Parameterized):
                                           'RdBu_r', 
                                           'RdGy_r'], 
                                default='HTT_OMNI')
-    node_color = param.Selector(default = 'connectivity', objects = ['connectivity', 'data_source'])
-    tooltips = param.ListSelector(default = [])
-    label_color = param.Selector(default = 'black', objects = ['black', 'white'])
     cmap_centered = param.Boolean(default=False)
+    
+    label_color = param.Selector(default = 'black', objects = ['black', 'white'])
+    fontsize = param.Selector(default = '10pt', objects = ['{}pt'.format(i) for i in range(31)])
+    
+    tooltips = param.ListSelector(default = [])
+    
     node_clim = param.Tuple(default  = (None, None), precedence=-1)
     min_node_size = param.Number(default=25, bounds = (0, 150))
     max_node_size = param.Number(default=60, bounds = (0, 150))
