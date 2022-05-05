@@ -47,20 +47,19 @@ class App(param.Parameterized):
                 pn.Param(self.data_filter, parameters = ['vis_unconnected'], **param_opts), 
                 height=15
             ), 
-            pn.Param(self.data_filter, parameters = ['max_nodes', 'node_display_priority', ], **param_opts),
+            pn.Param(self.data_filter, parameters = ['max_nodes', 'node_display_priority', ], height=80, **param_opts),
             pn.Param(self.network, parameters =['min_node_size', 'max_node_size'], **param_opts)
         ]
 
         edge_properties = [
-            pn.Param(self.data_filter, parameters = ['STRINGdb_score'], **param_opts), 
-            pn.Param(self.network, parameters = ['layout'], **param_opts),
+            pn.Param(self.data_filter, parameters = ['STRINGdb_score'], height=15, **param_opts), 
+            pn.Param(self.network, parameters = ['layout'], height=30, **param_opts),
             pn.Row(
                 pn.pane.Markdown('Bundle edges?', align='center'), 
                 pn.Param(self.network, parameters = ['bundle_graph_edges'], **param_opts),
                 height = 15
             ),
             pn.Param(self.network, parameters = ['min_edge_width', 'max_edge_width'], **param_opts),
-            pn.Column()
         ]
         
         data_filters = [
@@ -82,7 +81,8 @@ class App(param.Parameterized):
         )
         
         aesthetic_properties = [
-            pn.Param(self.network, parameters = ['fontsize', 'node_color', 'node_cmap', 'label_color', 'cmap_centered'], **param_opts),
+            pn.Param(self.network, parameters = ['node_color', 'node_cmap', 'cmap_centered'], **param_opts),
+            pn.Param(self.network, parameters = ['fontsize', 'label_color',], **param_opts),
             pn.Card(pn.Param(self.network, parameters=['tooltips'], **param_opts), title='Hover tooltip info')
         ]
         
