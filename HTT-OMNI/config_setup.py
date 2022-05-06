@@ -60,10 +60,7 @@ def setup():
 
     nodes = pd.read_csv(r'.\assets\data\20220319_published_nodes.csv.gz', low_memory=False)
     nodes.columns = nodes.columns.str.replace(' ', '_')
-        
-    edges = dd.read_csv(r'.\assets\data\20220319_published_edges.csv')
-    edges.columns = edges.columns.str.replace(' ', '_')    
-
+    
     geneID_col = 'interactor_Human_Ortholog_EntrezGeneID'
     geneSymbol_col = 'interactor_Human_Ortholog_EntrezGeneSymbol'
 
