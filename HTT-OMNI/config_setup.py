@@ -58,11 +58,44 @@ def setup():
     def save_hook(plot, element):
         plot.state.output_backend = 'svg'
 
-    nodes = pd.read_csv(r'.\assets\data\20220319_published_nodes.csv.gz', low_memory=False)
-    nodes.columns = nodes.columns.str.replace(' ', '_')
-    
     geneID_col = 'interactor_Human_Ortholog_EntrezGeneID'
     geneSymbol_col = 'interactor_Human_Ortholog_EntrezGeneSymbol'
+    
+   ################################ READ IN NODES ################################
+
+    nodes = pd.read_csv(r'.\assets\data\nodes.csv', low_memory=False)
+    nodes.columns = nodes.columns.str.replace(' ', '_')
+
+    # remove rows with only a negative interaction result
+    nodes = nodes[nodes['interaction_result'].str.contains('Y').fillna(True)]
+
+    # replace Cell Culture with Cell culture
+    nodes['model'] = nodes['model'].str.replace('Cell Culture', 'Cell culture')
+
+    # combine model and model_organism annotations (for Cell culture and In vitro)
+    nodes['model_species'] = nodes['model'].where(~nodes['model'].isin(['Cell culture', 'In vitro']), nodes['model'].str.cat(nodes['model_organism'], sep=' (')+')')
+
+    # create additional annotation for AP-MS studies
+    nodes['detection_method_annot'] = nodes['base_method'].where(lambda x: nodes['base_method']!='affinity chromatography technology', nodes['base_method'].str.cat(nodes['detection_method'], sep=' (')+')') 
+
+    # drop any rows without a human ortholog
+    nodes = nodes[~nodes[geneID_col].isnull()]
+
+    # some dtype mapping
+    nodes[geneID_col] = nodes[geneID_col].astype(int)
+    nodes['year'] = nodes['year'].astype(int)
+
+    # consolidate multiple GeneSymbols for a single GeneID
+    newest_geneSymbols = nodes.groupby(geneID_col).apply(lambda x: x.loc[x['year'].idxmax(), geneSymbol_col])
+    nodes[geneSymbol_col] = nodes[geneID_col].map(newest_geneSymbols)
+
+    # fill in common_name column with "WT" for PubMed:22556411
+    nodes['common_name'] = nodes['common_name'].where(nodes['source_identifier']!='PubMed:22556411', 'WT')
+
+    # add study_id column
+    nodes['study_id'] = nodes['authors'].str.split(',', n=1, expand=True)[0].str.split(' ', expand=True, n=1)[1].str.cat(nodes['year'].astype(str), sep=' ').str.cat(nodes['journal'], sep=' ').fillna(nodes['source_identifier'])
+    
+    ################################ READ IN OMICS DATA ################################
 
     omics_data = pd.read_csv(r'.\assets\data\20220319_omics_data.csv', header=[0, 1, 2, 3], index_col=[0, 1])
     omics_data.index.names = ['geneSymbol', 'geneID']
