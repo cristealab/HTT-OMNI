@@ -342,7 +342,7 @@ class DataFilter(param.Parameterized):
             user_data[self.groupby_PPI_cols[-1]] = user_data['study_id'].copy()
             
             self.user_quant = user_data.set_index(self.index_col)[user_data.columns[user_data.columns.str.contains('QUANT_')]]
-            self.user_quant.columns = self.user_quant.columns.str.strip('QUANT_')
+            self.user_quant.columns = self.user_quant.columns.str.replace('QUANT_', '')
             self.color_opts = ['connectivity', 'data_source']+self.user_quant.columns.values.tolist()
             
             self.user_data = self.user_data.reindex([self.index_col, self.gene_symbol_col, self.groupby_PPI_cols[-1], 'model']+self.filters, axis=1).fillna('Not reported')
