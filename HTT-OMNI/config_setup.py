@@ -131,6 +131,10 @@ def setup():
 
     filter_aliases = dict(zip(filters, ['Model (species)', 'Mouse model ID', 'Cell culture subtype', 'Tissue', 'HTT length', 'Method', 'Study (first author, year, journal)', 'Data source']))
     
+    # fill in missing filter values with "Not reported"
+    nodes['data_source'] = 'HINT'
+    nodes.loc[:, filters] = nodes.loc[:, filters].where(lambda x: x.notnull(), 'Not reported')
+
     ################################# NETWORK ##############################
     node_color = 'connectivity'
     node_cmap = 'HTT_OMNI'

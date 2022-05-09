@@ -275,13 +275,18 @@ class Network(param.Parameterized):
     def update_node_color(self): 
         
         self.loading = True
+
+        if self.node_color in self.parent.filter_aliases_r:
+            node_color = self.parent.filter_aliases_r[self.node_color]
+        else:
+            node_color = self.node_color
         
         if not 'Nodes' in self.graph_opts:
             self.graph_opts['Nodes'] = {}
-        self.graph_opts['Nodes'].update({'color': self.node_color})
+        self.graph_opts['Nodes'].update({'color': node_color})
         if not 'Graph' in self.graph_opts:
             self.graph_opts['Graph'] = {}
-        self.graph_opts['Graph'].update({'node_color': self.node_color})
+        self.graph_opts['Graph'].update({'node_color': node_color})
         
         self.param.set_param(graph_opts = self.graph_opts)
         
@@ -299,13 +304,18 @@ class Network(param.Parameterized):
         self.param.set_param(graph_opts = self.graph_opts)
         
     def center_clim_bounds(self, *events):
+
+        if self.node_color in self.parent.filter_aliases_r:
+            node_color = self.parent.filter_aliases_r[self.node_color]
+        else:
+            node_color = self.node_color
         
-        if pd.api.types.is_numeric_dtype(self.parent.show_nodes[self.node_color]):
-            min_, max_ = (self.parent.show_nodes[self.node_color].min(), self.parent.show_nodes[self.node_color].max())
+        if pd.api.types.is_numeric_dtype(self.parent.show_nodes[node_color]):
+            min_, max_ = (self.parent.show_nodes[node_color].min(), self.parent.show_nodes[node_color].max())
             if self.cmap_centered == False:
                 clim = (min_, max_)
             else:
-                if (self.parent.show_nodes[self.node_color]>0).any() and (self.parent.show_nodes[self.node_color]<0).any():
+                if (self.parent.show_nodes[node_color]>0).any() and (self.parent.show_nodes[node_color]<0).any():
                     bound = max(abs(min_), abs(max_))
                     clim = (-bound, bound)
                 else:
@@ -338,9 +348,14 @@ class Network(param.Parameterized):
         
     @param.depends('node_color', 'node_cmap', 'node_clim', watch = True)
     def make_network_cbar(self):
-        
+
+        if self.node_color in self.parent.filter_aliases_r:
+            node_color = self.parent.filter_aliases_r[self.node_color]
+        else:
+            node_color = self.node_color
+
         # show colorbar only if dtype of node_color column is numeric
-        if pd.api.types.is_numeric_dtype(self.parent.show_nodes[self.node_color]):
+        if pd.api.types.is_numeric_dtype(self.parent.show_nodes[node_color]):
             cbar = nodes_colorbar(cmap=self.graph_opts['Nodes']['cmap'], clim = self.node_clim, by=self.node_color)
             self.cbar_pane.object = cbar
             self.cbar_pane.visible = True
