@@ -385,6 +385,8 @@ class DataFilter(param.Parameterized):
             
             new_nodes = self.nodes[self.nodes['data_source']=='HINT'].copy()
             new_nodes.index = range(new_nodes.shape[0])
+
+            self.color_opts = ['connectivity']+[self.filter_aliases[k] for k in self.filter_aliases]
             
             self.nodes = new_nodes
             
@@ -394,7 +396,7 @@ class DataFilter(param.Parameterized):
             self.clear_filters()
             self.update_options()
 
-            self.color_opts = ['connectivity']+[self.filter_aliases[k] for k in self.filter_aliases]
+            
             
             for opt in self.options_:
                 setattr(getattr(self.param, opt), 'objects', self.options_map[opt].values.tolist())
