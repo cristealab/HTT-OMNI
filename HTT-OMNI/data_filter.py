@@ -22,7 +22,7 @@ class DataFilter(param.Parameterized):
     node_display_priority = param.Selector(objects = ["# PPI observations (all)", "# PPI observations (filtered)"], default = '# PPI observations (all)')
     vis_unconnected = param.Selector(objects = ['Hide', 'Show'], default='Show')
     PPI_sum_cutoff = param.Integer(default=1, label = 'min. # PPI observations (filtered)')
-    color_opts = param.List(default = ['connectivity', 'data_source'])
+    color_opts = param.List(default = ['connectivity'])
 
     # edge params
     STRINGdb_score = param.Number(0.4, bounds=(0, 1))
@@ -55,7 +55,6 @@ class DataFilter(param.Parameterized):
         
         self.nodes = nodes.copy()
         self.edges = edges
-        self.nodes['data_source'] = 'HINT'
         
         self.index_col = index_col
         self.gene_symbol_col = gene_symbol_col
@@ -70,6 +69,7 @@ class DataFilter(param.Parameterized):
             filter_aliases = {k: k for k in self.filters}
             
         self.filter_aliases = filter_aliases
+        self.filter_aliases_r = {filter_aliases[k]:k for k in filter_aliases}
         
         self.check_data()
         self.annotate()
@@ -121,6 +121,7 @@ class DataFilter(param.Parameterized):
         ]
         
         self.mapping = dict(other+default+default_AND_OR_NOT)
+        self.color_opts = ['connectivity']+[self.filter_aliases[k] for k in self.filter_aliases]
 
         self.filter_nodes(1)# triggers self.apply_query, self.update_sel_nodes
 
@@ -148,8 +149,7 @@ class DataFilter(param.Parameterized):
                 
         return one_hot
     
-    def one_hot_to_str(self, df_):
-        df = df_[df_.columns[df_.columns.get_level_values(1)!='Not reported']].copy()
+    def one_hot_to_str(self, df):
         arr_str = np.where(df, df.columns.get_level_values(1), 'EMPTY')+', '
 
         return pd.Series(arr_str.sum(axis=1), index = df.index).str.replace('EMPTY, ', '').str.strip(', ')
@@ -163,6 +163,13 @@ class DataFilter(param.Parameterized):
         self.one_hot = self.encode_one_hot(self.nodes, self.filters+['data_source'])
         self.annotations = self.one_hot.groupby(level=0, axis=1).apply(self.one_hot_to_str).reset_index(self.gene_symbol_col)
         self.annotations['PPI_SUM_TOTAL'] = self.PPI_sum.reindex(self.annotations.index)
+
+    def get_annotations(self, nodes):
+        one_hot = self.encode_one_hot(nodes, self.filters+['data_source'])
+        annotations = one_hot.groupby(level=0, axis=1).apply(self.one_hot_to_str).reset_index(self.gene_symbol_col)
+        annotations['PPI_SUM_TOTAL'] = self.annotations['PPI_SUM_TOTAL'].reindex(annotations.index)
+        
+        return annotations
 
     def compute_PPI_sum(self, df):
         return df.groupby(self.groupby_PPI_cols).size().groupby(self.index_col).size()
@@ -224,7 +231,8 @@ class DataFilter(param.Parameterized):
         
     @param.depends('queried_nodes', 'PPI_sum_cutoff', watch=True)
     def update_sel_nodes(self):
-        sel_nodes = self.annotations.reindex(self.queried_nodes[self.index_col].unique())
+
+        sel_nodes = self.get_annotations(self.queried_nodes)
         
         if self.user_data is not None:
             sel_nodes = pd.concat([sel_nodes, self.user_quant.reindex(sel_nodes.index)], axis=1)
@@ -261,7 +269,7 @@ class DataFilter(param.Parameterized):
         
     @param.depends('max_nodes', 'sel_edges', 'node_display_priority', 'vis_unconnected', watch=True) 
     def update_show_data(self):
-        
+
         self.loading = True
         
         node_display_priority = dict(zip(["# PPI observations (all)", "# PPI observations (filtered)"], ['PPI_SUM_TOTAL', 'PPI_SUM_FILT']))[self.node_display_priority]
@@ -311,7 +319,6 @@ class DataFilter(param.Parameterized):
     def update_display_nodes(self):
         self.display_nodes = self.show_nodes[[self.index_col, self.gene_symbol_col, 'PPI_SUM_TOTAL', 'PPI_SUM_FILT']+self.filters]
     
-    
     @param.depends('user_upload_file', watch=True)
     def add_user_data(self):
         self.loading = True
@@ -343,7 +350,7 @@ class DataFilter(param.Parameterized):
             
             self.user_quant = user_data.set_index(self.index_col)[user_data.columns[user_data.columns.str.contains('QUANT_')]]
             self.user_quant.columns = self.user_quant.columns.str.replace('QUANT_', '')
-            self.color_opts = ['connectivity', 'data_source']+self.user_quant.columns.values.tolist()
+            self.color_opts = ['connectivity']+[self.filter_aliases[k] for k in self.filter_aliases]+self.user_quant.columns.values.tolist()
             
             self.user_data = self.user_data.reindex([self.index_col, self.gene_symbol_col, self.groupby_PPI_cols[-1], 'model']+self.filters, axis=1).fillna('Not reported')
             
