@@ -393,6 +393,8 @@ class DataFilter(param.Parameterized):
             # reset filters
             self.clear_filters()
             self.update_options()
+
+            self.color_opts = ['connectivity']+[self.filter_aliases[k] for k in self.filter_aliases]
             
             for opt in self.options_:
                 setattr(getattr(self.param, opt), 'objects', self.options_map[opt].values.tolist())
