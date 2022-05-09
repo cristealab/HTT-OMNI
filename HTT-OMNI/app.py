@@ -75,7 +75,7 @@ class App(param.Parameterized):
             pn.Card(
                 pn.Param(self.data_filter, parameters=['node_query'], show_labels=False, **param_opts), 
                 collapsed=True, 
-                title='Search for Gene IDs',
+                title='Search for Genes',
             ),
             *data_filters
         )
