@@ -137,7 +137,7 @@ class Enrichment(param.Parameterized):
                                 ('# genes', '@num_out_of')]
                      )
 
-        scatter = hv.Scatter(results, vdims=['fold_enrichment', 'size', 'fdr', 'num_out_of'], kdims = ['wrap_label'])
+        scatter = hv.Scatter(results, vdims=['fold_enrichment', 'size', 'fdr', 'num_out_of', 'label'], kdims = ['wrap_label'])
         spikes = hv.Spikes(results, kdims = ['wrap_label'], vdims = ['fold_enrichment', 'fdr'])
 
         scatter_opts = opts.Scatter(
