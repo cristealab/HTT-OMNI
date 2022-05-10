@@ -165,10 +165,13 @@ class DataFilter(param.Parameterized):
         self.annotations['PPI_SUM_TOTAL'] = self.PPI_sum.reindex(self.annotations.index)
 
     def get_annotations(self, nodes):
-        one_hot = self.encode_one_hot(nodes, self.filters+['data_source'])
-        annotations = one_hot.groupby(level=0, axis=1).apply(self.one_hot_to_str).reset_index(self.gene_symbol_col)
-        annotations['PPI_SUM_TOTAL'] = self.annotations['PPI_SUM_TOTAL'].reindex(annotations.index)
-        
+        if nodes.shape[0] > 0:
+            one_hot = self.encode_one_hot(nodes, self.filters+['data_source'])
+            annotations = one_hot.groupby(level=0, axis=1).apply(self.one_hot_to_str).reset_index(self.gene_symbol_col)
+            annotations['PPI_SUM_TOTAL'] = self.annotations['PPI_SUM_TOTAL'].reindex(annotations.index)
+        else:
+            annotations = self.annotations.reindex([])
+
         return annotations
 
     def compute_PPI_sum(self, df):
