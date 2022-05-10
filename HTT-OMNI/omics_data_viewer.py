@@ -179,7 +179,7 @@ class OmicsDataViewer(param.Parameterized):
     @param.depends('parent.sel_nodes', 'data', watch=True)
     def update_averaged_nodes_data(self):
         idx = list(map(tuple, self.parent.sel_nodes[[self.parent.index_col, self.parent.label_col]].values))
-        data_ = self.data.reindex(idx).mean()
+        data_ = self.data.reindex(idx).median()
         data_.name = 'value'
         
         data_source_count = self.parent.parent.annotations.reindex(self.parent.sel_nodes[self.parent.index_col]).groupby('data_source').size().reset_index()
@@ -196,7 +196,7 @@ class OmicsDataViewer(param.Parameterized):
             ylabel = 'log2FC abundance'
         else:
             title_ = title
-            ylabel = 'log2FC abundance (mean of all nodes)'
+            ylabel = 'log2FC abundance (median of all nodes)'
 
         lines = ds.to(hv.Curve, 'Q-length', ['value', 'tissue','age'], 'Tissue/Age').overlay('Tissue/Age')
         scatter = ds.to(hv.Scatter, 'Q-length', ['value', 'tissue','age'], 'Tissue/Age').overlay('Tissue/Age')
@@ -214,7 +214,7 @@ class OmicsDataViewer(param.Parameterized):
             ylabel = 'fractional expression'
         else:
             title_ = title
-            ylabel = 'fractional expression (mean of all nodes)'
+            ylabel = 'fractional expression (median of all nodes)'
 
         return hv.Bars(ds, 'cell type', ['fractional expression', 'alpha']).opts(self.plot_opts[data_type]).opts(ylabel=ylabel, title=title_, framewise=True)
     
@@ -233,7 +233,7 @@ class OmicsDataViewer(param.Parameterized):
             ylabel = 'log2FC abundance (Q175/WT)'
         else:
             title_ = title
-            ylabel = 'log2FC abundance\n(Q175/WT; mean of all nodes)'
+            ylabel = 'log2FC abundance\n(Q175/WT; median of all nodes)'
 
         return hv.Bars(ds, 'cell type', ['log2FC abundance (Q175/WT)', 'alpha']).opts(self.plot_opts[data_type]).opts(ylabel=ylabel, title=title_)
     
