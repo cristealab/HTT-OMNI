@@ -331,9 +331,10 @@ class DataFilter(param.Parameterized):
         temp.columns = [self.filter_aliases[j]+f' ({i})'for i, j in temp.columns.values]
         temp['# PPI observations (all)'] = filt.loc[temp.index, 'PPI_SUM_TOTAL']
         temp['# PPI observations (filtered)'] = filt.loc[temp.index, 'PPI_SUM_FILT']
+        temp['connectivity'] = filt.loc[temp.index, 'connectivity']
 
-        self.display_nodes = temp[['# PPI observations (all)', '# PPI observations (filtered)']+[i for i in temp.columns if not i in ['# PPI observations (all)', '# PPI observations (filtered)']]].reset_index()
-    
+        self.display_nodes = temp[['# PPI observations (all)', '# PPI observations (filtered)', 'connectivity']+[i for i in temp.columns if not i in ['# PPI observations (all)', '# PPI observations (filtered)', 'connectivity']]].reset_index()
+
     @param.depends('user_upload_file', watch=True)
     def add_user_data(self):
         self.loading = True
