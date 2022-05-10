@@ -108,7 +108,7 @@ class Network(param.Parameterized):
             ),
             ('node_cmap', {'name': 'Node colormap'}
             ),
-            ('cmap_centered', {'name': 'Center colormap at zero'}
+            ('cmap_centered', {'name': 'Center colormap (only valid for data with values above and below zero)'}
             ),
         ]) 
         
