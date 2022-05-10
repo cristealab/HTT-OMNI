@@ -49,7 +49,7 @@ class Network(param.Parameterized):
                                           'RdBu_r', 
                                           'RdGy_r'], 
                                default='HTT_OMNI')
-    cmap_centered = param.Boolean(default=False)
+    cmap_centered = param.Boolean(default=True)
     
     label_color = param.Selector(default = 'black', objects = ['black', 'white'])
     fontsize = param.Selector(default = '10pt', objects = ['{}pt'.format(i) for i in range(31)])
