@@ -108,7 +108,7 @@ class DataFilter(param.Parameterized):
                                'show_index': False, 
                                'autosize_mode':"fit_viewport", 
                                'frozen_columns': 2, 
-                               'titles': dict([(k, self.filter_aliases[k]) for k in self.filter_aliases]+[(self.index_col, 'GeneID'), (self.gene_symbol_col, 'Gene Symbol')])}
+                               }
             ),
             ('user_upload_file', {'type': pn.widgets.FileInput, 
                                   'accept':'.txt,.tab', 
@@ -320,7 +320,19 @@ class DataFilter(param.Parameterized):
         
     @param.depends('show_nodes', watch = True)
     def update_display_nodes(self):
-        self.display_nodes = self.show_nodes[[self.index_col, self.gene_symbol_col, 'PPI_SUM_TOTAL', 'PPI_SUM_FILT']+self.filters]
+
+        filt = self.show_nodes.set_index([self.index_col, self.gene_symbol_col])
+        filt.index.names = ['GeneID', 'Gene Symbol']
+
+        all_annot = self.annotations.reset_index().set_index([self.index_col, self.gene_symbol_col]).loc[filt.index, :]
+        all_annot.index.names = ['GeneID', 'Gene Symbol']
+
+        temp = pd.concat([pd.concat([all_annot[f], filt[[f]]], axis=1, keys = ['all annotations', 'after filtering']) for f in self.filters], axis=1)
+        temp.columns = [self.filter_aliases[j]+f' ({i})'for i, j in temp.columns.values]
+        temp['# PPI observations (all)'] = filt.loc[temp.index, 'PPI_SUM_TOTAL']
+        temp['# PPI observations (filtered)'] = filt.loc[temp.index, 'PPI_SUM_FILT']
+
+        self.display_nodes = temp[['# PPI observations (all)', '# PPI observations (filtered)']+[i for i in temp.columns if not i in ['# PPI observations (all)', '# PPI observations (filtered)']]].reset_index()
     
     @param.depends('user_upload_file', watch=True)
     def add_user_data(self):
