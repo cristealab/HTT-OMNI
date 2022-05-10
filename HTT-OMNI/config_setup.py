@@ -73,7 +73,7 @@ def setup():
     nodes['model'] = nodes['model'].str.replace('Cell Culture', 'Cell culture')
 
     # replace "brain" tissue annotation with "brain, whole"
-    nodes['tissue'] = nodes['tissue'].where(nodes['tissue']!='brain', 'brain, whole')
+    nodes['tissue'] = nodes['tissue'].where(nodes['tissue']!='brain', 'brain (whole)')
 
     # combine model and model_organism annotations (for Cell culture and In vitro)
     nodes['model_species'] = nodes['model'].where(~nodes['model'].isin(['Cell culture', 'In vitro']), nodes['model'].str.cat(nodes['model_organism'], sep=' (')+')')
