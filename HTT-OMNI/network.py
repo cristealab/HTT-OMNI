@@ -396,7 +396,7 @@ class Network(param.Parameterized):
 
     def export_show_nodes(self):
         sio = StringIO()
-        self.parent.show_nodes.to_csv(sio, sep='\t')
+        self.parent.display_nodes.to_csv(sio, sep='\t')
         sio.seek(0)
         
         return sio
@@ -410,7 +410,19 @@ class Network(param.Parameterized):
     
     def export_sel_nodes(self):
         sio = StringIO()
-        self.parent.sel_nodes.to_csv(sio, sep='\t')
+
+        filt = self.parent.sel_nodes.reset_index().set_index([self.parent.index_col, self.parent.gene_symbol_col])
+        filt.index.names = ['GeneID', 'Gene Symbol']
+
+        all_annot = self.parent.annotations.reset_index().set_index([self.parent.index_col, self.parent.gene_symbol_col]).loc[filt.index, :]
+        all_annot.index.names = ['GeneID', 'Gene Symbol']
+
+        temp = pd.concat([pd.concat([all_annot[f], filt[[f]]], axis=1, keys = ['all annotations', 'after filtering']) for f in self.parent.filters], axis=1)
+        temp.columns = [self.parent.filter_aliases[j]+f' ({i})'for i, j in temp.columns.values]
+        temp['# PPI observations (all)'] = filt.loc[temp.index, 'PPI_SUM_TOTAL']
+        temp['# PPI observations (filtered)'] = filt.loc[temp.index, 'PPI_SUM_FILT']
+        
+        temp.to_csv(sio, sep='\t')
         sio.seek(0)
         
         return sio
