@@ -183,7 +183,7 @@ class App(param.Parameterized):
                 pn.Column(self.omics_viewer.network_AS_protein_pane, name = 'Protein levels'),
                 pn.Column(self.omics_viewer.network_snRNA_pane, name = 'snRNA levels'),
                 pn.Column(self.omics_viewer.network_scRNA_pane, name = 'scRNA levels'),
-                pn.Column(self.omics_viewer.network_source_count_pane, name = 'Data sources'),
+                # pn.Column(pn.Param(self.omics_viewer, parameters = ['sel_filter'], **param_opts), self.omics_viewer.network_filter_count_pane, name = 'Data sources'),
                 dynamic = True
             ), 
             title = 'Omics data (filtered nodes)',

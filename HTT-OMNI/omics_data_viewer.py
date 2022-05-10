@@ -12,10 +12,11 @@ class OmicsDataViewer(param.Parameterized):
     selected_node_data = param.Series(precedence=-1) # subset of data corresponding to the selected node
     averaged_nodes_data = param.Series(precedence=-1) # subset of data corresponding to the network nodes (averaged)
     model_count = param.DataFrame(precedence=-1) # model count for all nodes in parent.nodes
-    data_source_count = param.DataFrame(precedence=-1) # count of nodes for different data sources (e.g., HINT vs. user-uploaded)
+    filter_count = param.Series(precedence=-1) # count of nodes for different data sources (e.g., HINT vs. user-uploaded)
 
     ages = param.ListSelector()
     tissues = param.ListSelector()
+    sel_filter = param.Selector()
     
     parent = param.ClassSelector(Network, precedence=-1)
     net_node_ids = param.List()
@@ -47,7 +48,8 @@ class OmicsDataViewer(param.Parameterized):
             ('age_label', {'type': pn.widgets.StaticText}
             ),
             ('tissue_label', {'type': pn.widgets.StaticText}
-            )
+            ),
+            ('sel_filter', {'name': 'Select a filter to plot'})
         ])
         
         tissues_ = np.unique(self.omics_data[self.AS_types].columns.get_level_values('tissue')).tolist()
@@ -55,8 +57,10 @@ class OmicsDataViewer(param.Parameterized):
         
         self.param.tissues.objects = tissues_
         self.param.ages.objects = ages_
+
+        self.param.sel_filter.objects = [self.parent.parent.filter_aliases[f] for f in self.parent.parent.filters]
         
-        self.param.set_param(tissues = tissues_, ages = ages_)
+        self.param.set_param(tissues = tissues_, ages = ages_, sel_filter=self.parent.parent.filter_aliases[self.parent.parent.filters[0]])
         self.update_data()
         
         pcts = np.array([0.05, 0.95])
@@ -130,9 +134,10 @@ class OmicsDataViewer(param.Parameterized):
                   'title': self.param.title_network}
         self.network_model_obs_pane.object = hv.DynamicMap(self.models_plot, streams = stream10)
 
-        self.network_source_count_pane = pn.pane.HoloViews(**pane_params)
-        stream11 = {'data': self.param.data_source_count,}
-        self.network_source_count_pane.object = hv.DynamicMap(self.data_source_plot, streams = stream11)
+        # self.network_filter_count_pane = pn.pane.HoloViews(**pane_params)
+        # stream11 = {'data_': self.param.filter_count,
+        #             'filter': self.param.sel_filter}
+        # self.network_filter_count_pane.object = hv.DynamicMap(self.filter_count_plot, streams = stream11)
         
     def check_data(self):
         if not self.omics_data.columns.names == ['type', 'tissue', 'Q-length', 'age', 'Tissue/Age']:
@@ -182,10 +187,9 @@ class OmicsDataViewer(param.Parameterized):
         data_ = self.data.reindex(idx).median()
         data_.name = 'value'
         
-        data_source_count = self.parent.parent.annotations.reindex(self.parent.sel_nodes[self.parent.index_col]).groupby('data_source').size().reset_index()
-        data_source_count.columns = ['data_source', '#_nodes']
+        # filter_count = pd.concat({self.parent.parent.filter_aliases[f]: self.parent.parent.show_nodes.reindex(self.parent.sel_nodes[self.parent.index_col]).groupby(f).size() for f in self.parent.parent.filters}, names = ['filter'])
         
-        self.param.set_param(averaged_nodes_data = data_, net_node_ids = self.parent.sel_nodes[self.parent.index_col].values.tolist(), data_source_count=data_source_count)
+        self.param.set_param(averaged_nodes_data = data_, net_node_ids = self.parent.sel_nodes[self.parent.index_col].values.tolist())
     
     def AS_plot(self, data, data_type, title):
         data_ = data[data_type].reset_index()
@@ -251,9 +255,11 @@ class OmicsDataViewer(param.Parameterized):
 
         return hv.Bars(data).opts(self.plot_opts[data_type]).opts(title=title_, ylabel=ylabel)
 
-    def data_source_plot(self, data):
-        ylim = (0, data['#_nodes'].max()*1.1)
-        return hv.Bars(data, ['data_source'], ['#_nodes']).opts(self.plot_opts['model_obs']).opts(title='All filtered nodes', ylabel='# nodes', xlabel='', ylim = ylim, tools=['hover'])
+    # def filter_count_plot(self, data_, filter):
+    #     data = data_[filter].reset_index()
+    #     data.columns = ['x', '#_nodes']
+    #     ylim = (0, data['#_nodes'].max()*1.1)
+    #     return hv.Bars(data, ['x'], ['#_nodes']).opts(self.plot_opts['model_obs']).opts(title='All filtered nodes', ylabel='# nodes', xlabel='', ylim = ylim, tools=['hover'])
     
     def poly_overlays(self):
         lims = self.desc_lims[self.AS_types].stack(['type', 'Q-length']).mean(axis=1).unstack(['type', 'Q-length'])
