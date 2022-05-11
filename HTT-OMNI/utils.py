@@ -61,5 +61,8 @@ def update_STRINGdb_edgefile(aliases_fn, links_fn):
     edges['GENE_ID_A'] = edges['GENE_ID_A'].astype(int)
     edges['GENE_ID_B'] = edges['GENE_ID_B'].astype(int)
     edges = edges[~edges['EDGE_ID'].duplicated()]
+
+    # get rid of self edges
+    edges = edges[edges['GENE_ID_A']!=edges['GENE_ID_B']]
     
     return edges
