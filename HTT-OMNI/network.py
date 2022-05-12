@@ -187,7 +187,7 @@ class Network(param.Parameterized):
         
         if network_graph is not None:
             self.click_stream.source = self.graph.edge_graph
-            network_graph = network_graph.opts(*[getattr(opts, k)(**self.graph_opts[k]) for k in self.graph_opts]).opts(active_tools=['point_draw'])
+            network_graph = network_graph.opts(*[getattr(opts, k)(**self.graph_opts[k]) for k in self.graph_opts]).opts(active_tools=['point_draw', 'wheel_zoom'])
 
             if self.selected_node == (None, None): # only on initialization
                 self.selected_node = tuple(self.node_data.iloc[0,:][[self.index_col, self.label_col]])
