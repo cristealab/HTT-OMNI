@@ -76,7 +76,7 @@ def setup():
     nodes['tissue'] = nodes['tissue'].where(nodes['tissue']!='brain', 'brain (whole)')
 
     # combine model and model_organism annotations (for Cell culture and In vitro)
-    nodes['model_species'] = nodes['model'].where(~nodes['model'].isin(['Cell culture', 'In vitro']), nodes['model'].str.cat(nodes['model_organism'], sep=' (')+')')
+    nodes['model_species'] = nodes['model'].where(~nodes['model'].isin(['Cell culture', 'In vitro']), nodes['model'].str.cat(nodes['model_organism'].fillna('Not reported'), sep=' (')+')')
 
     # create additional annotation for AP-MS studies
     nodes['detection_method_annot'] = nodes['base_method'].where(lambda x: nodes['base_method']!='affinity chromatography technology', nodes['base_method'].str.cat(nodes['detection_method'], sep=' (')+')') 
