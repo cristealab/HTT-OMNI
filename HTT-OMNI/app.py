@@ -79,6 +79,9 @@ class App(param.Parameterized):
             ),
             *data_filters
         )
+        self.PPI_sum = node_filter_wids[0][0]
+        self.query = node_filter_wids[1][0][0]
+        self.data_filters = data_filters
         
         aesthetic_properties = [
             pn.Param(self.network, parameters = ['node_color', 'node_cmap', 'cmap_centered'], **param_opts),
@@ -195,7 +198,16 @@ class App(param.Parameterized):
 
     @param.depends('enrichment.loading', watch = True)
     def disable_go_button(self):
-        self.go_button.disabled = self.enrichment.loading  
+        self.go_button.disabled = self.enrichment.loading
+
+    @param.depends('data_filter.reset_filters', watch=True)
+    def update_filters(self):
+        with param.discard_events(self):
+            self.PPI_sum.value = 1
+            self.query.value = ''
+
+            for filter in self.data_filters:
+                filter[0][0].value = []
         
     def view(self):
         return self.template
