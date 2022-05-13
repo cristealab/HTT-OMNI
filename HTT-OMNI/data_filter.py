@@ -354,6 +354,14 @@ class DataFilter(param.Parameterized):
                 pn.state.notifications.warning('WARNING: duplicate gene IDs found, dropping duplicate entries', duration=0)
                 user_data = user_data[~user_data[['gene_id', 'study_id']].duplicated()].copy()
 
+            if user_data['gene_id'].isnull().any():
+                pn.state.notifications.warning('WARNING: found blank gene ID values, dropping missing gene ID rows', duration=0)
+                user_data = user_data[user_data['gene_id'].notnull()]
+
+            if user_data['study_id'].isnull().any():
+                pn.state.notifications.warning('WARNING: found blank study ID values, dropping missing study ID rows', duration=0)
+                user_data = user_data[user_data['study_id'].notnull()]
+
             user_data['data_source'] = 'user - '+user_data['study_id']
             self.display_user_data = user_data.copy()
 
