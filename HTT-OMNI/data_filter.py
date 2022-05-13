@@ -362,6 +362,7 @@ class DataFilter(param.Parameterized):
                 pn.state.notifications.warning('WARNING: found blank study ID values, dropping missing study ID rows', duration=0)
                 user_data = user_data[user_data['study_id'].notnull()]
 
+
             user_data['data_source'] = 'user - '+user_data['study_id']
             self.display_user_data = user_data.copy()
 
@@ -372,6 +373,9 @@ class DataFilter(param.Parameterized):
             user_data.columns = cols.where(cols!='gene_id', self.index_col).where(cols!='gene_symbol', self.gene_symbol_col)
             user_data[self.groupby_PPI_cols[-1]] = user_data['study_id'].copy()
             
+            # make sure that if "QUANT" columns are included, there aren't multiple duplicate nodes with different quant values
+
+
             self.user_quant = user_data.set_index(self.index_col)[user_data.columns[user_data.columns.str.contains('QUANT_')]]
             self.user_quant.columns = self.user_quant.columns.str.replace('QUANT_', '')
             self.color_opts = ['connectivity']+[self.filter_aliases[k] for k in self.filter_aliases]+self.user_quant.columns.values.tolist()
@@ -404,6 +408,13 @@ class DataFilter(param.Parameterized):
     def rem_user_data(self):
 
         if self.user_data is not None:
+            # reset filters
+            self.clear_filters()
+            self.update_options()
+
+            for opt in self.options_:
+                setattr(getattr(self.param, opt), 'objects', self.options_map[opt].values.tolist())
+                
             self.user_data = None
             self.display_user_data = pd.DataFrame()
             
@@ -416,14 +427,7 @@ class DataFilter(param.Parameterized):
             
             self.annotate()
             
-            # reset filters
-            self.clear_filters()
-            self.update_options()
-
             
-            
-            for opt in self.options_:
-                setattr(getattr(self.param, opt), 'objects', self.options_map[opt].values.tolist())
                 
             self.filter_nodes()
 
