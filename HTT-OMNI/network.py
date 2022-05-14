@@ -57,6 +57,8 @@ class Network(param.Parameterized):
     tooltips = param.ListSelector(default = [])
     
     node_clim = param.Tuple(default  = (None, None), precedence=-1)
+    clim_min = param.Number()
+    clim_max = param.Number()
     min_node_size = param.Number(default=25, bounds = (0, 150))
     max_node_size = param.Number(default=60, bounds = (0, 150))
     min_edge_width = param.Number(default=0.25, bounds = (0, 15))
@@ -109,6 +111,10 @@ class Network(param.Parameterized):
             ('node_cmap', {'name': 'Node colormap'}
             ),
             ('cmap_centered', {'name': 'Center colormap (only valid for data with values above and below zero)'}
+            ),
+            ('clim_min', {'type': pn.widgets.FloatInput, 'name': 'colormap minimum'}
+            ),
+            ('clim_max', {'type': pn.widgets.FloatInput, 'name': 'colormap maximum'}
             ),
         ]) 
         
@@ -164,7 +170,7 @@ class Network(param.Parameterized):
         self.graph_opts['Graph'].update({'node_size': dim('PPI_SUM_TOTAL').categorize(size_dict)})
 
         # set up ordered param watching on self
-        self.param.watch(self.set_graph_opts_cmap_centered, 'cmap_centered', queued=True, precedence=2)
+        self.param.watch(self.set_graph_opts_cmap_centered, ['cmap_centered'], queued=True, precedence=2)
         self.param.watch(self.center_clim_bounds, ['cmap_centered', 'node_color'])
         self.param.watch(self.update_nodes_edges, ['min_edge_width', 'max_edge_width'])
         
@@ -176,6 +182,8 @@ class Network(param.Parameterized):
         self.update_nodes_edges(None) # triggers self.update_data
         self.make_network_cbar()
         self.center_clim_bounds(None)
+
+        self.param.set_param(clim_min = self.node_clim[0], clim_max = self.node_clim[1])
         
         # set tooltips to user provided tooltips
         self.tooltips = [i[0] for i in user_tooltips] # triggers self.update_tooltips
@@ -300,6 +308,11 @@ class Network(param.Parameterized):
             self.graph_opts['Graph'] = {}
         self.graph_opts['Graph'].update({'clim': self.node_clim})
 
+    @param.depends('clim_min', 'clim_max', watch=True)
+    def update_clim(self):
+        self.node_clim = (self.clim_min, self.clim_max)
+        self.param.set_param(graph_opts = self.graph_opts)
+
     def set_graph_opts_cmap_centered(self, events):
         self.param.set_param(graph_opts = self.graph_opts)
         
@@ -321,7 +334,7 @@ class Network(param.Parameterized):
                 else:
                     clim = (min_, max_)
             
-            self.node_clim = clim
+            self.param.set_param(node_clim = clim, clim_min = clim[0], clim_max=clim[1])
         
         else:
             self.node_clim = (None, None)

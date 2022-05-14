@@ -84,7 +84,7 @@ class App(param.Parameterized):
         self.data_filters = data_filters
         
         aesthetic_properties = [
-            pn.Param(self.network, parameters = ['node_color', 'node_cmap', 'cmap_centered'], **param_opts),
+            pn.Param(self.network, parameters = ['node_color', 'node_cmap', 'cmap_centered', 'clim_min', 'clim_max'], **param_opts),
             pn.Param(self.network, parameters = ['fontsize', 'label_color',], **param_opts),
             pn.Card(pn.Param(self.network, parameters=['tooltips'], **param_opts), title='Hover tooltip info')
         ]
