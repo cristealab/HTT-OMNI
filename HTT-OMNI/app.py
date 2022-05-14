@@ -105,6 +105,8 @@ class App(param.Parameterized):
             )
         ]
 
+        self.user_data = user_upload[0][1][0]
+
         AS_toggles = pn.Card(pn.Column(pn.Param(self.omics_viewer, parameters = ['tissues', 'ages'], **param_opts)), title='AS omics data toggles')
 
         sidebar = pn.Tabs(
@@ -208,6 +210,11 @@ class App(param.Parameterized):
 
             for filter in self.data_filters:
                 filter[0][0].value = []
-        
+
+    @param.depends('data_filter.remove_user_data', watch=True)
+    def update_upload_user_data(self):
+       pass 
+        # todo... figure out how to get the input widget to update
+
     def view(self):
         return self.template
