@@ -312,18 +312,15 @@ class DataFilter(param.Parameterized):
         self.param.set_param(show_nodes = show_nodes, show_edges = show_edges) # triggers Network.update_data
         
     @param.depends('reset_filters', watch=True)
-    def clear_filters(self, wait=False):
+    def clear_filters(self):
         self.loading = True
-        
+
         with param.discard_events(self): # don't trigger any param update events
             for f in self.filters:
                 setattr(self, f, [])
             self.PPI_sum_cutoff = 1
 
-        if wait == True:
-            pass
-        else:
-            self.filter_nodes()
+        self.filter_nodes()
         
     @param.depends('show_nodes', watch = True)
     def update_display_nodes(self):
@@ -402,26 +399,19 @@ class DataFilter(param.Parameterized):
             # notify user
             pn.state.notifications.send('{} new nodes added to the network. {} existing nodes found in user uploaded data'.format(is_new, existing), background='#4489ab', icon="<i class='fa fa-info-circle' style='color: white'></i> ", duration=0)
             
-            # reset filters
-            self.clear_filters(wait=True)
+            # reset filters & trigger network update
+            self.param.trigger('reset_filters')
+            
             self.update_options()
             
             for opt in self.options_:
                 setattr(getattr(self.param, opt), 'objects', self.options_map[opt].values.tolist())
-                
-            self.filter_nodes()
 
     @param.depends('remove_user_data', watch=True)
     def rem_user_data(self):
 
         if self.user_data is not None:
-            # reset filters
-            self.clear_filters(wait=True)
-            self.update_options()
 
-            for opt in self.options_:
-                setattr(getattr(self.param, opt), 'objects', self.options_map[opt].values.tolist())
-                
             self.user_data = None
             self.display_user_data = pd.DataFrame()
             
@@ -433,7 +423,17 @@ class DataFilter(param.Parameterized):
             self.nodes = new_nodes
             
             self.annotate()
-            self.filter_nodes()
 
+            with param.discard_events(self):
+                self.user_upload_file = None
+            
+            # reset filters & trigger network update
+            self.param.trigger('reset_filters')
+            
+            self.update_options()
+
+            for opt in self.options_:
+                setattr(getattr(self.param, opt), 'objects', self.options_map[opt].values.tolist())
+            
             # notify user
             pn.state.notifications.send('Network reset to initial state', background='#4489ab', icon="<i class='fa fa-info-circle' style='color: white'></i> ", duration=0)
