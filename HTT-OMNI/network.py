@@ -37,17 +37,19 @@ class Network(param.Parameterized):
     node_cmap = param.Selector(objects = ['Category10', 
                                           'Category20', 
                                           'colorblind',
-                                          'Holoviews', 
+                                          'HoloViews', 
                                           'Set2', 
                                           'Set3', 
                                           'HTT_OMNI', 
                                           'YlGnBu', 
-                                          'YlOrRed', 
+                                          'YlOrRd', 
                                           'Bokeh', 
                                           'isolum', 
                                           'Spectral', 
                                           'RdBu_r', 
-                                          'RdGy_r'], 
+                                          'RdGy_r',
+                                          'HoloViews_divergent'
+                                          ], 
                                default='HTT_OMNI')
     cmap_centered = param.Boolean(default=True)
     
@@ -144,8 +146,10 @@ class Network(param.Parameterized):
         ### configure cmap & node size ###
         if self.node_cmap == 'HTT_OMNI':
             node_cmap = sns.blend_palette(['white', '#4489ab'], as_cmap=True)
-        elif self.node_cmap == 'Holoviews':
+        elif self.node_cmap == 'HoloViews':
             node_cmap = hv.Cycle.default_cycles["default_colors"]
+        elif self.node_cmap == 'HoloViews_divergent':
+            node_cmap = sns.blend_palette([hv.Cycle.default_cycles["default_colors"][0], 'white', hv.Cycle.default_cycles["default_colors"][1]], as_cmap=True)
         else:
             node_cmap = self.node_cmap
         
@@ -265,8 +269,10 @@ class Network(param.Parameterized):
         
         if self.node_cmap == 'HTT_OMNI':
             node_cmap = sns.blend_palette(['white', '#4489ab'], as_cmap=True)
-        elif self.node_cmap == 'Holoviews':
+        elif self.node_cmap == 'HoloViews':
             node_cmap = hv.Cycle.default_cycles["default_colors"]
+        elif self.node_cmap == 'HoloViews_divergent':
+            node_cmap = sns.blend_palette([hv.Cycle.default_cycles["default_colors"][0], 'white', hv.Cycle.default_cycles["default_colors"][1]], as_cmap=True)
         else:
             node_cmap = self.node_cmap
         
