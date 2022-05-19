@@ -93,8 +93,8 @@ class App(param.Parameterized):
             pn.Column(
                 '##### Select a file to upload', 
                 pn.Param(self.data_filter, parameters = ['user_upload_file'], **param_opts),
-                '**Required column headers:** gene_id, string_id, study_id',
-                '**Optional column headers:** '+', '.join([i for i in self.data_filter.filters if not i=='study_id']),
+                '**Required column headers:** gene_id, study_id',
+                '**Optional column headers:** '+', '.join([i for i in self.data_filter.filters if not i in ['study_id', 'data_source']]),
                 '##### User uploaded data:',
                 pn.WidgetBox(
                     pn.Param(self.data_filter, parameters = ['display_user_data'], **param_opts), 
