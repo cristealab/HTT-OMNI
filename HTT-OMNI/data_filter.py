@@ -3,6 +3,7 @@ import panel as pn
 import pandas as pd
 import numpy as np
 from io import StringIO
+from bokeh.models import NumberFormatter
 
 class DataFilter(param.Parameterized):
     filters = param.List(precedence=-1)
@@ -64,6 +65,7 @@ class DataFilter(param.Parameterized):
         self.edge_score_col = edge_score_col
         
         self.user_data = None
+        self.user_quant = None
         
         if filter_aliases is None:
             filter_aliases = {k: k for k in self.filters}
@@ -108,6 +110,7 @@ class DataFilter(param.Parameterized):
                                'show_index': False, 
                                'autosize_mode':"fit_viewport", 
                                'frozen_columns': 2, 
+                               'formatters': {'GeneID': NumberFormatter(format='0')}
                                }
             ),
             ('user_upload_file', {'type': pn.widgets.FileInput, 
@@ -331,13 +334,24 @@ class DataFilter(param.Parameterized):
         all_annot = self.annotations.reset_index().set_index([self.index_col, self.gene_symbol_col]).loc[filt.index, :]
         all_annot.index.names = ['GeneID', 'Gene Symbol']
 
-        temp = pd.concat([pd.concat([all_annot[f], filt[[f]]], axis=1, keys = ['all annotations', 'after filtering']) for f in self.filters], axis=1)
-        temp.columns = [self.filter_aliases[j]+f' ({i})'for i, j in temp.columns.values]
-        temp['# PPI observations (all)'] = filt.loc[temp.index, 'PPI_SUM_TOTAL']
-        temp['# PPI observations (filtered)'] = filt.loc[temp.index, 'PPI_SUM_FILT']
-        temp['connectivity'] = filt.loc[temp.index, 'connectivity']
+        if self.user_quant is not None:
+            temp = pd.concat([pd.concat([all_annot[f], filt[[f]]], axis=1, keys = ['all annotations', 'after filtering']) for f in self.filters], axis=1)
+            temp.columns = [self.filter_aliases[j]+f' ({i})'for i, j in temp.columns.values]
+            temp['# PPI observations (all)'] = filt.loc[temp.index, 'PPI_SUM_TOTAL']
+            temp['# PPI observations (filtered)'] = filt.loc[temp.index, 'PPI_SUM_FILT']
+            temp['connectivity'] = filt.loc[temp.index, 'connectivity']
+            temp = pd.concat([temp, self.user_quant.reindex(temp.index, level='GeneID')], axis=1)
 
-        self.display_nodes = temp[['# PPI observations (all)', '# PPI observations (filtered)', 'connectivity']+[i for i in temp.columns if not i in ['# PPI observations (all)', '# PPI observations (filtered)', 'connectivity']]].reset_index()
+            self.display_nodes = temp[['# PPI observations (all)', '# PPI observations (filtered)', 'connectivity']+self.user_quant.columns.values.tolist()+[i for i in temp.columns if not i in ['# PPI observations (all)', '# PPI observations (filtered)', 'connectivity']+self.user_quant.columns.values.tolist()]].reset_index()
+
+        else:
+            temp = pd.concat([pd.concat([all_annot[f], filt[[f]]], axis=1, keys = ['all annotations', 'after filtering']) for f in self.filters], axis=1)
+            temp.columns = [self.filter_aliases[j]+f' ({i})'for i, j in temp.columns.values]
+            temp['# PPI observations (all)'] = filt.loc[temp.index, 'PPI_SUM_TOTAL']
+            temp['# PPI observations (filtered)'] = filt.loc[temp.index, 'PPI_SUM_FILT']
+            temp['connectivity'] = filt.loc[temp.index, 'connectivity']
+
+            self.display_nodes = temp[['# PPI observations (all)', '# PPI observations (filtered)', 'connectivity']+[i for i in temp.columns if not i in ['# PPI observations (all)', '# PPI observations (filtered)', 'connectivity']]].reset_index()
 
     @param.depends('user_upload_file', watch=True)
     def add_user_data(self):
