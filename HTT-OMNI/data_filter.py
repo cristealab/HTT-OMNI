@@ -380,7 +380,6 @@ class DataFilter(param.Parameterized):
                 pn.state.notifications.warning('WARNING: found blank study ID values, dropping missing study ID rows', duration=0)
                 user_data = user_data[user_data['study_id'].notnull()]
 
-
             user_data['data_source'] = 'user - '+user_data['study_id']
             self.display_user_data = user_data.copy()
 
@@ -390,14 +389,17 @@ class DataFilter(param.Parameterized):
             cols = user_data.columns
             user_data.columns = cols.where(cols!='gene_id', self.index_col).where(cols!='gene_symbol', self.gene_symbol_col)
             user_data[self.groupby_PPI_cols[-1]] = user_data['study_id'].copy()
-            
-            # make sure that if "QUANT" columns are included, there aren't multiple duplicate nodes with different quant values
-
 
             self.user_quant = user_data.set_index(self.index_col)[user_data.columns[user_data.columns.str.contains('QUANT_')]]
             self.user_quant.columns = self.user_quant.columns.str.replace('QUANT_', '')
+
+            # make sure that if "QUANT" columns are included, there aren't multiple duplicate nodes with different quant values
+            if (self.user_quant.groupby(self.index_col).size()>1).any():
+                pn.state.notifications.warning('WARNING: different QUANT_ values cannot be associated with the same node, dropping duplicate quantitative values for {} nodes'.format((self.user_quant.groupby(self.index_col).size()>1).sum()), duration=0)
+                self.user_quant = self.user_quant[~self.user_quant.index.duplicated()]
+
             self.color_opts = ['connectivity']+[self.filter_aliases[k] for k in self.filter_aliases]+self.user_quant.columns.values.tolist()
-            
+
             self.user_data = self.user_data.reindex([self.index_col, self.gene_symbol_col, self.groupby_PPI_cols[-1], 'model']+self.filters, axis=1).fillna('Not reported')
             
             # combine with existing nodes, dropping any existing "user added" rows
@@ -427,6 +429,7 @@ class DataFilter(param.Parameterized):
         if self.user_data is not None:
 
             self.user_data = None
+            self.user_quant = None
             self.display_user_data = pd.DataFrame()
             
             new_nodes = self.nodes[self.nodes['data_source']=='HINT'].copy()
