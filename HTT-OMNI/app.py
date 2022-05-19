@@ -1,5 +1,7 @@
 import panel as pn
 import param
+from io import StringIO
+import pandas as pd
 
 from data_filter import DataFilter
 from network import Network
@@ -88,13 +90,16 @@ class App(param.Parameterized):
             pn.Param(self.network, parameters = ['fontsize', 'label_color',], **param_opts),
             pn.Card(pn.Param(self.network, parameters=['tooltips'], **param_opts), title='Hover tooltip info')
         ]
-        
+
+        self.download_template_button = pn.widgets.FileDownload(callback = self.download_template, filename = 'upload_template.tab', label= 'Download data upload template')
+
         user_upload = [
             pn.Column(
                 '##### Select a file to upload', 
                 pn.Param(self.data_filter, parameters = ['user_upload_file'], **param_opts),
                 '**Required column headers:** gene_id, study_id',
                 '**Optional column headers:** '+', '.join([i for i in self.data_filter.filters if not i in ['study_id', 'data_source']]),
+                self.download_template_button,
                 '##### User uploaded data:',
                 pn.WidgetBox(
                     pn.Param(self.data_filter, parameters = ['display_user_data'], **param_opts), 
@@ -215,6 +220,14 @@ class App(param.Parameterized):
     def update_upload_user_data(self):
        pass 
         # todo... figure out how to get the input widget to update
+    
+    def download_template(self):
+        sio = StringIO()
+        upload_template = pd.read_csv(r'.\assets\upload_template.csv')
+        upload_template.to_csv(sio, sep='\t', index=False)
+        sio.seek(0)
+        
+        return sio
 
     def view(self):
         return self.template
