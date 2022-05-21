@@ -175,8 +175,8 @@ def setup():
 
     ################################# ENRICHMENT ##############################
     annot_desc = {
-        'GO biological process': 'GO:0003674',
-        'GO molecular function': 'GO:0008150',
+        'GO biological process': 'GO:0008150',
+        'GO molecular function': 'GO:0003674',
         'GO cellular component': 'GO:0005575',
         'GO SLIM molecular function': 'ANNOT_TYPE_ID_PANTHER_GO_SLIM_MF',
         'GO SLIM biological process': 'ANNOT_TYPE_ID_PANTHER_GO_SLIM_BP',
