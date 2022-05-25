@@ -210,7 +210,7 @@ class OmicsDataViewer(param.Parameterized):
     def scRNA_plot(self, data, data_type, title):
         data_ = data[data_type].reset_index()[['tissue', 'value']]
         data_.columns = ['cell type', 'fractional expression']
-        data_['alpha'] = np.where(data_['fractional expression']>=0.95, 1, 0.15)
+        data_['alpha'] = np.where(data_['fractional expression']>=0.8, 1, 0.15)
         ds = hv.Dataset(data_)
 
         if type(title) == tuple:
@@ -228,7 +228,7 @@ class OmicsDataViewer(param.Parameterized):
         sn_lims = self.desc_lims[data_type]
         sn_lims = sn_lims.T.reset_index([i for i in sn_lims.columns.names if not i=='tissue'], drop=True).T
 
-        sig = (data_['log2FC abundance (Q175/WT)']<=sn_lims.iloc[0,:][data_['cell type']].values)|(data_['log2FC abundance (Q175/WT)']>=sn_lims.iloc[1,:][data_['cell type']].values)
+        sig = (data_['log2FC abundance (Q175/WT)']<=-0.15)|(data_['log2FC abundance (Q175/WT)']>=.15)
         data_['alpha'] = np.where(sig, 1, 0.15)
         ds = hv.Dataset(data_)
 
