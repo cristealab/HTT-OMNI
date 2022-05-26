@@ -47,12 +47,12 @@ def setup():
     pn.state.cache = {}
 
     def unpack_STRINGdb_edgefile():
-        stringdb_edgefile = pd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv.gz')
-        stringdb_edgefile.to_csv(r'.\assets\data\STRINGdb_edgefile.csv', index=False)
+        stringdb_edgefile = pd.read_csv(r'./assets/data/STRINGdb_edgefile.csv.gz')
+        stringdb_edgefile.to_csv(r'./assets/data/STRINGdb_edgefile.csv', index=False)
 
     # since STRINGdb_edgefile is too large to track using normal git, 
     # we'll just git track the gzipped version and unpack it locally when needed
-    if not os.path.exists(r'.\assets\data\STRINGdb_edgefile.csv'):
+    if not os.path.exists(r'./assets/data/STRINGdb_edgefile.csv'):
         unpack_STRINGdb_edgefile()
 
     def save_hook(plot, element):
@@ -63,7 +63,7 @@ def setup():
     
    ################################ READ IN NODES ################################
 
-    nodes = pd.read_csv(r'.\assets\data\nodes.csv', low_memory=False)
+    nodes = pd.read_csv(r'./assets/data/nodes.csv', low_memory=False)
     nodes.columns = nodes.columns.str.replace(' ', '_')
 
     # remove rows with only a negative interaction result
@@ -100,7 +100,7 @@ def setup():
     
     ################################ READ IN OMICS DATA ################################
 
-    omics_data = pd.read_csv(r'.\assets\data\20220319_omics_data.csv', header=[0, 1, 2, 3], index_col=[0, 1])
+    omics_data = pd.read_csv(r'./assets/data/20220319_omics_data.csv', header=[0, 1, 2, 3], index_col=[0, 1])
     omics_data.index.names = ['geneSymbol', 'geneID']
     omics_data = omics_data.reset_index().set_index(['geneID', 'geneSymbol'])
     temp = omics_data.T.reset_index()
@@ -324,7 +324,7 @@ def setup():
 
     # cache required data
     pn.state.cache['nodes'] = nodes
-    pn.state.cache['edges'] = dd.read_csv(r'.\assets\data\STRINGdb_edgefile.csv', usecols=[2, 3, 4])
+    pn.state.cache['edges'] = dd.read_csv(r'./assets/data/STRINGdb_edgefile.csv', usecols=[2, 3, 4])
     pn.state.cache['filters'] = filters
     pn.state.cache['index_col'] = geneID_col
     pn.state.cache['gene_symbol_col'] = geneSymbol_col
@@ -346,8 +346,8 @@ def setup():
     pn.state.cache['plot_opts'] = plot_opts
     pn.state.cache['background_geneIDs'] = background_geneIDs
 
-    if os.path.exists(r'.\assets\data\init_GO_results.csv'):
-        pn.state.cache['GO_init_results'] = pd.read_csv(r'.\assets\data\init_GO_results.csv')
+    if os.path.exists(r'./assets/data/init_GO_results.csv'):
+        pn.state.cache['GO_init_results'] = pd.read_csv(r'./assets/data/init_GO_results.csv')
 
 
 setup()
