@@ -162,7 +162,7 @@ class Network(param.Parameterized):
         
         self.param.node_color.objects = self.parent.color_opts
 
-        max_PPI = 20
+        max_PPI = self.parent.PPI_sum.drop(3064).max()
         size_dict = dict(zip(range(1, max_PPI+1), np.linspace(self.min_node_size, self.max_node_size, max_PPI)))
         size_dict.update(dict(zip(range(max_PPI+1, 1000), [self.max_node_size]*len(list(range(max_PPI+1, 1000))))))
 

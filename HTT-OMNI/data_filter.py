@@ -297,6 +297,7 @@ class DataFilter(param.Parameterized):
         show_edges = self.sel_edges[in_source & in_target].copy()
         
         show_nodes['connectivity'] = pd.concat([show_edges.groupby(self.source_col).size(), show_edges.groupby(self.target_col).size()], axis=1).sum(axis=1).reindex(show_nodes[self.index_col]).fillna(0).values
+        show_nodes['node_marker'] = np.where(show_nodes[self.index_col]==3064, 'square', 'circle')
         
         # configure network plot title
         if self.query_found is None:

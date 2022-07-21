@@ -157,6 +157,7 @@ def setup():
         'Nodes': dict(
             color=node_color,
             cmap = node_cmap,
+            marker = 'node_marker'
         ),
         'Graph': dict(
             edge_color = 'grey',
@@ -164,7 +165,8 @@ def setup():
             node_color = node_color,
             cmap = node_cmap,
     #         clim = clim,
-            tools = ['tap']
+            tools = ['tap'],
+            node_marker = 'node_marker'
         ),
         'Overlay': dict(
             xlim=(-1.3, 1.3),
