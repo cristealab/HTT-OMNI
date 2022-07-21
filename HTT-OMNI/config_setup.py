@@ -138,6 +138,12 @@ def setup():
     nodes['data_source'] = 'HINT'
     nodes.loc[:, filters] = nodes.loc[:, filters].where(lambda x: x.notnull(), 'Not reported')
 
+    # add extra HTT rows so that HTT is always present as a node
+    temp = nodes.groupby(filters+['source_identifier']).apply(lambda x: ~(x[geneSymbol_col]=='HTT').any()).where(lambda x: x!=False, np.nan).dropna().reset_index()[filters+['source_identifier']]
+    temp[geneID_col] = 3064
+    temp[geneSymbol_col] = 'HTT'
+    nodes = pd.concat([nodes, temp], ignore_index=True)
+
     ################################# NETWORK ##############################
     node_color = 'connectivity'
     node_cmap = 'HTT_OMNI'

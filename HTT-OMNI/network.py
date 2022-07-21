@@ -164,7 +164,7 @@ class Network(param.Parameterized):
 
         max_PPI = 20
         size_dict = dict(zip(range(1, max_PPI+1), np.linspace(self.min_node_size, self.max_node_size, max_PPI)))
-        size_dict.update(dict(zip(range(max_PPI+1, 101), [self.max_node_size]*len(list(range(max_PPI+1, 101))))))
+        size_dict.update(dict(zip(range(max_PPI+1, 1000), [self.max_node_size]*len(list(range(max_PPI+1, 1000))))))
 
         if not 'Nodes' in self.graph_opts:
             self.graph_opts['Nodes'] = {}
