@@ -102,8 +102,8 @@ class Enrichment(param.Parameterized):
             'annotDataSet': self.desc_mapping[self.GO_annot],
         }
 
-        if self.background_geneIDs is not None:
-            payload.update({'refInputList': ','.join(self.background_geneIDs), 'refOrganism': 9606})
+        # if self.background_geneIDs is not None:
+        #     payload.update({'refInputList': ','.join(self.background_geneIDs), 'refOrganism': 9606})
 
         r = requests.post(url, data=payload)
         results = r.json()['results']['result']
